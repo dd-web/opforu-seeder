@@ -1,0 +1,437 @@
+package main
+
+import (
+	"math/rand"
+	"strconv"
+	"strings"
+)
+
+// lorem ipsum generator
+var words_lorem = []string{"lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit",
+	"a", "ac", "accumsan", "ad", "aenean", "aliquam", "aliquet", "ante",
+	"aptent", "arcu", "at", "auctor", "augue", "bibendum", "blandit",
+	"class", "commodo", "condimentum", "congue", "consequat", "conubia",
+	"convallis", "cras", "cubilia", "curabitur", "curae", "cursus",
+	"dapibus", "diam", "dictum", "dictumst", "dignissim", "dis", "donec",
+	"dui", "duis", "efficitur", "egestas", "eget", "eleifend", "elementum",
+	"enim", "erat", "eros", "est", "et", "etiam", "eu", "euismod", "ex",
+	"facilisi", "facilisis", "fames", "faucibus", "felis", "fermentum",
+	"feugiat", "finibus", "fringilla", "fusce", "gravida", "habitant",
+	"habitasse", "hac", "hendrerit", "himenaeos", "iaculis", "id",
+	"imperdiet", "in", "inceptos", "integer", "interdum", "justo",
+	"lacinia", "lacus", "laoreet", "lectus", "leo", "libero", "ligula",
+	"litora", "lobortis", "luctus", "maecenas", "magna", "magnis",
+	"malesuada", "massa", "mattis", "mauris", "maximus", "metus", "mi",
+	"molestie", "mollis", "montes", "morbi", "mus", "nam", "nascetur",
+	"natoque", "nec", "neque", "netus", "nibh", "nisi", "nisl", "non",
+	"nostra", "nulla", "nullam", "nunc", "odio", "orci", "ornare",
+	"parturient", "pellentesque", "penatibus", "per", "pharetra",
+	"phasellus", "placerat", "platea", "porta", "porttitor", "posuere",
+	"potenti", "praesent", "pretium", "primis", "proin", "pulvinar",
+	"purus", "quam", "quis", "quisque", "rhoncus", "ridiculus", "risus",
+	"rutrum", "sagittis", "sapien", "scelerisque", "sed", "sem", "semper",
+	"senectus", "sociosqu", "sodales", "sollicitudin", "suscipit",
+	"suspendisse", "taciti", "tellus", "tempor", "tempus", "tincidunt",
+	"torquent", "tortor", "tristique", "turpis", "ullamcorper", "ultrices",
+	"ultricies", "urna", "ut", "varius", "vehicula", "vel", "velit",
+	"venenatis", "vestibulum", "vitae", "vivamus", "viverra", "volutpat",
+	"vulputate"}
+
+// color words
+var words_colors = []string{
+	"yellow",
+	"red",
+	"green",
+	"blue",
+	"orange",
+	"purple",
+	"pink",
+	"black",
+	"white",
+	"brown",
+	"gray",
+	"silver",
+	"gold",
+	"bronze",
+	"rainbow",
+}
+
+// sports words
+var words_sports = []string{
+	"football",
+	"soccer",
+	"basketball",
+	"hockey",
+	"baseball",
+	"tennis",
+	"golf",
+	"rugby",
+	"volleyball",
+	"cricket",
+	"badminton",
+	"bowling",
+	"boxing",
+	"curling",
+	"handball",
+	"polo",
+}
+
+// animal words
+var words_animals = []string{
+	"dog",
+	"cat",
+	"bird",
+	"fish",
+	"horse",
+	"cow",
+	"pig",
+	"sheep",
+	"chicken",
+	"duck",
+	"goat",
+	"turkey",
+	"rabbit",
+	"deer",
+	"bear",
+	"lion",
+	"tiger",
+	"elephant",
+	"monkey",
+}
+
+// hobby words
+var words_hobbies = []string{
+	"fishing",
+	"sailing",
+	"swimming",
+	"running",
+	"jogging",
+	"walking",
+	"climbing",
+	"skiing",
+	"skating",
+	"surfing",
+	"skateboarding",
+	"biking",
+	"painting",
+	"reading",
+	"writing",
+	"cooking",
+}
+
+// cities
+var words_cities = []string{
+	"new york",
+	"los angeles",
+	"chicago",
+	"houston",
+	"phoenix",
+	"philadelphia",
+	"san antonio",
+	"san diego",
+	"dallas",
+	"san jose",
+	"austin",
+	"jacksonville",
+	"fort worth",
+	"san francisco",
+}
+
+// adjective words
+var words_adjectives = []string{
+	"happy",
+	"sad",
+	"angry",
+	"mad",
+	"glad",
+	"funny",
+	"cool",
+	"hot",
+	"cold",
+	"gay",
+	"fast",
+	"slow",
+	"quick",
+	"smart",
+	"stupid",
+	"tall",
+}
+
+// noun words
+var words_nouns = []string{
+	"lover",
+	"giver",
+	"taker",
+	"maker",
+	"builder",
+	"destroyer",
+	"creator",
+	"player",
+	"fighter",
+	"writer",
+	"reader",
+	"thinker",
+	"doer",
+	"worker",
+	"helper",
+	"smasher",
+}
+
+// email domains
+var words_domains = []string{
+	"gmail",
+	"hotmail",
+	"yahoo",
+	"msn",
+	"outlook",
+	"live",
+	"icloud",
+	"protonmail",
+	"zoho",
+	"yandex",
+}
+
+// subdomains
+var words_subdomains = []string{
+	"com",
+	"org",
+	"net",
+	"co",
+	"edu",
+	"gov",
+	"mil",
+	"int",
+	"tv",
+	"info",
+	"biz",
+}
+
+// word prefixes
+var word_partials_prefix = []string{
+	"yu",
+	"re",
+	"gr",
+	"bl",
+	"or",
+	"pu",
+	"pi",
+	"bl",
+	"ph",
+	"wh",
+	"br",
+	"gr",
+	"si",
+	"go",
+	"za",
+	"ra",
+	"to",
+	"dal",
+	"dav",
+	"wil",
+	"jac",
+	"for",
+	"san",
+	"los",
+	"chi",
+	"hou",
+	"phi",
+	"san",
+	"tin",
+	"xed",
+	"fun",
+	"coo",
+	"hot",
+	"col",
+	"qui",
+}
+
+// word suffixes
+var word_partials_suffix = []string{
+	"ow",
+	"ed",
+	"en",
+	"ue",
+	"le",
+	"er",
+	"ty",
+	"ck",
+	"ly",
+	"ne",
+	"ny",
+	"by",
+	"ty",
+	"ze",
+	"ct",
+	"ine",
+	"ing",
+	"ter",
+	"der",
+	"ker",
+	"ler",
+	"per",
+	"yer",
+	"mer",
+	"ger",
+	"ver",
+	"ser",
+	"zer",
+	"ner",
+	"ber",
+	"der",
+}
+
+// word categories
+var categories = []*[]string{
+	&words_colors,
+	&words_sports,
+	&words_animals,
+	&words_hobbies,
+	&words_cities,
+	&words_adjectives,
+	&words_nouns,
+}
+
+// random int between min and max
+func RandomIntBetween(min, max int) int {
+	return min + rand.Intn(max-min)
+}
+
+// returns a random category of words
+func SelectRandomCategory() *[]string {
+	return categories[RandomIntBetween(0, len(categories)-1)]
+}
+
+// returns a random word from a category
+func SelectRandomWord(c *[]string) string {
+	str := (*c)[RandomIntBetween(0, len(*c)-1)]
+	return strings.ReplaceAll(str, " ", "")
+}
+
+// returns any random word from the categories of word - not field specific case words
+func SelectAnyWord() string {
+	return SelectRandomWord(SelectRandomCategory())
+}
+
+// return a random number of letters between min and max
+func RandomLettersBetween(min, max int) string {
+	strlen := RandomIntBetween(min, max)
+	str := ""
+	for i := 0; i < strlen; i++ {
+		str = str + string(rune(RandomIntBetween(97, 122)))
+	}
+	return str
+}
+
+// some random username
+func GetUsername() string {
+	prefix := word_partials_prefix[RandomIntBetween(0, len(word_partials_prefix)-1)]
+	suffix := word_partials_suffix[RandomIntBetween(0, len(word_partials_suffix)-1)]
+	between := RandomLettersBetween(0, 5)
+	word := ""
+
+	c := RandomIntBetween(0, 8)
+
+	switch c {
+	case 0:
+		word = prefix + between + suffix
+	case 1:
+		word = strconv.Itoa(RandomIntBetween(0, 99)) + prefix + between + suffix + strconv.Itoa(RandomIntBetween(0, 99))
+	case 2:
+		word = prefix + between + suffix + strconv.Itoa(RandomIntBetween(0, 99))
+	case 3:
+		word = prefix + between + strconv.Itoa(RandomIntBetween(0, 999)) + suffix
+	case 4:
+		word = prefix + between + strconv.Itoa(RandomIntBetween(0, 999)) + suffix + strconv.Itoa(RandomIntBetween(0, 99))
+	case 5:
+		word = prefix + strconv.Itoa(RandomIntBetween(0, 999)) + between + suffix + strconv.Itoa(RandomIntBetween(0, 999))
+	case 6:
+		word = prefix + strconv.Itoa(RandomIntBetween(0, 999)) + between + suffix
+	case 7:
+		word = strconv.Itoa(RandomIntBetween(0, 99)) + prefix + strconv.Itoa(RandomIntBetween(0, 999)) + between + suffix
+	case 8:
+		word = strconv.Itoa(RandomIntBetween(0, 99)) + prefix + strconv.Itoa(RandomIntBetween(0, 99)) + between + strconv.Itoa(RandomIntBetween(0, 99)) + suffix
+	}
+
+	return word
+}
+
+// some random email
+func GetEmail() string {
+	word := SelectAnyWord() + SelectAnyWord()
+	c := RandomIntBetween(0, 10)
+
+	switch c {
+	case 0:
+		word = word + strconv.Itoa(RandomIntBetween(0, 9))
+	case 1:
+		word = word + strconv.Itoa(RandomIntBetween(0, 99))
+	case 2:
+		word = word + strconv.Itoa(RandomIntBetween(0, 999))
+	case 3:
+		word = strconv.Itoa(RandomIntBetween(0, 999)) + word
+	case 4:
+		word = strconv.Itoa(RandomIntBetween(0, 99)) + word
+	case 5:
+		word = strconv.Itoa(RandomIntBetween(0, 9)) + word
+	case 6:
+		word = strconv.Itoa(RandomIntBetween(0, 9)) + word + strconv.Itoa(RandomIntBetween(0, 9))
+	case 7:
+		word = strconv.Itoa(RandomIntBetween(0, 99)) + word + strconv.Itoa(RandomIntBetween(0, 99))
+	default:
+		break
+	}
+
+	return word + "@" + words_domains[RandomIntBetween(0, len(words_domains)-1)] + "." + words_subdomains[RandomIntBetween(0, len(words_subdomains)-1)]
+}
+
+// return random lorem word
+func GetLoremWord() string {
+	return words_lorem[RandomIntBetween(0, len(words_lorem)-1)]
+}
+
+// return random sentence
+func GetSentence() string {
+	wc := RandomIntBetween(15, 20)
+	sentence := ""
+	for i := 0; i < wc; i++ {
+		sentence = sentence + GetLoremWord() + " "
+	}
+	return sentence
+}
+
+// return random paragraph
+func GetParagraph() string {
+	sc := RandomIntBetween(3, 10)
+	paragraph := "  "
+	for i := 0; i < sc; i++ {
+		paragraph = paragraph + GetSentence() + ". "
+	}
+	return paragraph + "\n\n"
+}
+
+// return random number of paragraphs between min and max
+func GetParagraphsBetween(min, max int) string {
+	pc := RandomIntBetween(min, max)
+	paragraphs := ""
+	for i := 0; i < pc; i++ {
+		paragraphs = paragraphs + GetParagraph()
+	}
+	return paragraphs
+}
+
+// weighted roles
+func GetRole() string {
+	num := RandomIntBetween(0, 100)
+	if num < 85 {
+		return "public"
+	} else if num < 95 {
+		return "mod"
+	} else {
+		return "admin"
+	}
+}
+
+// default password to use for dummy accounts
+func GetDefaultPassword() string {
+	return "123"
+}
