@@ -48,6 +48,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Starting MongoDB Setup. Fuck SQL. SQL is for fags.")
+
 	st, err := NewMongoStore(os.Getenv("MONGO_DATABASE"))
 	if err != nil {
 		log.Fatal("Error connecting to MongoDB", err)

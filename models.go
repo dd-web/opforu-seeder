@@ -11,6 +11,7 @@ import (
 
 var collNames []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities"}
 
+// generate database "columns" (collections)
 func (s *MongoStore) GenCollections() {
 	for _, name := range collNames {
 
@@ -116,6 +117,7 @@ func (s *MongoStore) CreateAccount(account *Account) {
 	}
 }
 
+// return all account ids with admin role
 func (s *MongoStore) GetAdminAccountIDs() ([]primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -137,8 +139,3 @@ func (s *MongoStore) GetAdminAccountIDs() ([]primitive.ObjectID, error) {
 
 	return adminIDs, nil
 }
-
-// make array ptr for object id's
-// func NewObjectIDArray() *[]primitive.ObjectID {
-// 	return &[]primitive.ObjectID{}
-// }

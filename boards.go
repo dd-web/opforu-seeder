@@ -18,6 +18,11 @@ var defaultBoards [][]string = [][]string{
 	{"history", "his", "history is cool"},
 }
 
+// returns number of default boards
+func GetDefaultBoardCount() int {
+	return len(defaultBoards)
+}
+
 type Board struct {
 	ID        primitive.ObjectID    `json:"id,omitempty" bson:"_id,omitempty"`
 	Title     string                `json:"title" bson:"title"`
