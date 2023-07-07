@@ -291,6 +291,14 @@ var categories = []*[]string{
 	&words_nouns,
 }
 
+var SlugAlphabet = []string{
+	"a", "b", "c", "d", "e", "f", "g", "h", "i",
+	"j", "k", "l", "m", "n", "o", "p", "q", "r",
+	"s", "t", "u", "v", "x", "y", "z", "-", "_",
+	"0", "1", "2", "3", "4", "5", "6", "7", "8",
+	"9",
+}
+
 // random int between min and max
 func RandomIntBetween(min, max int) int {
 	return min + rand.Intn(max-min)
@@ -420,7 +428,7 @@ func GetParagraphsBetween(min, max int) string {
 }
 
 // weighted roles
-func GetRole() string {
+func GetWeightedRole() string {
 	num := RandomIntBetween(0, 100)
 	if num < 85 {
 		return "public"
@@ -429,6 +437,60 @@ func GetRole() string {
 	} else {
 		return "admin"
 	}
+}
+
+// weighted thread status
+func GetWeightedThreadStatus() string {
+	num := RandomIntBetween(0, 100)
+	if num < 95 {
+		return "open"
+	} else {
+		return "closed"
+	}
+}
+
+// return random slug between min and max
+func GetSlug(min, max int) string {
+	slugLen := RandomIntBetween(min, max)
+	slugStr := ""
+	for i := 0; i < slugLen; i++ {
+		slugStr = slugStr + SlugAlphabet[RandomIntBetween(0, len(SlugAlphabet)-1)]
+	}
+	return slugStr
+}
+
+// identity alias prefixes
+var aliasPrefixes = []string{
+	"filled",
+	"ghost",
+	"soft",
+	"glass",
+}
+
+// identity alias suffixes
+var aliasSuffixes = []string{
+	"primary",
+	"secondary",
+	"tertiary",
+	"success",
+	"warning",
+	"error",
+	"surface",
+}
+
+// return identity style string
+func GetIdentityStyle() string {
+	return "variant-" + aliasPrefixes[RandomIntBetween(0, len(aliasPrefixes)-1)] + "-" + aliasSuffixes[RandomIntBetween(0, len(aliasSuffixes)-1)]
+}
+
+// return between min and max tags
+func GetRandomTags(min, max int) []string {
+	tagCount := RandomIntBetween(min, max)
+	tags := []string{}
+	for i := 0; i < tagCount; i++ {
+		tags = append(tags, GetLoremWord())
+	}
+	return tags
 }
 
 // default password to use for dummy accounts

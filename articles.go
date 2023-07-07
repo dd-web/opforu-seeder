@@ -9,11 +9,11 @@ import (
 type Article struct {
 	ID        primitive.ObjectID    `json:"id" bson:"_id,omitempty"`
 	AuthorID  primitive.ObjectID    `json:"author_id" bson:"author"`
-	CreatedAt time.Time             `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at" bson:"updated_at"`
 	Title     string                `json:"title" bson:"title"`
 	Body      string                `json:"body" bson:"body"`
 	Comments  *[]primitive.ObjectID `json:"comments" bson:"comments"`
+	CreatedAt time.Time             `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at" bson:"updated_at"`
 }
 
 // new empty article ptr

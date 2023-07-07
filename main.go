@@ -78,6 +78,9 @@ func main() {
 
 	// generate articles
 	st.GenArticles()
+
+	// generate threades
+	st.GenThreads(100, 200)
 }
 
 // primarily functions as an C++ assert

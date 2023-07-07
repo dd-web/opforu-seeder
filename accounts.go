@@ -25,7 +25,7 @@ func NewEmptyAccount() *Account {
 func (a *Account) Randomize(password string) {
 	a.Username = GetUsername()
 	a.Email = GetEmail()
-	a.Role = GetRole()
+	a.Role = GetWeightedRole()
 	a.Password = password
 	a.CreatedAt = time.Now().UTC()
 	a.UpdatedAt = time.Now().UTC()
