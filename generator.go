@@ -432,20 +432,60 @@ func GetWeightedRole() string {
 	num := RandomIntBetween(0, 100)
 	if num < 85 {
 		return "public"
-	} else if num < 95 {
+	} else if num < 97 {
 		return "mod"
 	} else {
 		return "admin"
 	}
 }
 
+// weighted account status
+func GetWeightedAccountStatus() string {
+	num := RandomIntBetween(0, 100)
+	if num < 92 {
+		return "active"
+	} else if num < 95 {
+		return "suspended"
+	} else if num < 98 {
+		return "banned"
+	} else {
+		return "deleted"
+	}
+}
+
 // weighted thread status
 func GetWeightedThreadStatus() string {
 	num := RandomIntBetween(0, 100)
-	if num < 95 {
+	if num < 90 {
 		return "open"
-	} else {
+	} else if num < 95 {
 		return "closed"
+	} else if num < 97 {
+		return "archived"
+	} else {
+		return "deleted"
+	}
+}
+
+// weighted identity role
+func GetWeightedIdentityRole() string {
+	num := RandomIntBetween(0, 100)
+	if num < 95 {
+		return "public"
+	} else {
+		return "mod"
+	}
+}
+
+// weighted identity status
+func GetWeightedIdentityStatus() string {
+	num := RandomIntBetween(0, 100)
+	if num < 92 {
+		return "active"
+	} else if num < 98 {
+		return "suspended"
+	} else {
+		return "banned"
 	}
 }
 

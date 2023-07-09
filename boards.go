@@ -24,13 +24,16 @@ func GetDefaultBoardCount() int {
 }
 
 type Board struct {
-	ID        primitive.ObjectID   `json:"id,omitempty" bson:"_id,omitempty"`
+	ID        primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty"`
 	Title     string               `json:"title" bson:"title"`
 	Short     string               `json:"short" bson:"short"`
 	Desc      string               `json:"desc" bson:"desc"`
 	Threads   []primitive.ObjectID `json:"threads" bson:"threads"`
-	CreatedAt time.Time            `json:"createdAt" bson:"createdAt"`
-	UpdatedAt time.Time            `json:"updatedAt" bson:"updatedAt"`
+	CreatedAt time.Time            `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time            `json:"updated_at" bson:"updated_at"`
+
+	// used to come up with post numbers
+	PostRef int `json:"post_ref" bson:"post_ref"`
 }
 
 // new empty board ptr
@@ -48,6 +51,7 @@ func NewBoard(t, s, d string) *Board {
 		Threads:   []primitive.ObjectID{},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
+		PostRef:   0,
 	}
 }
 

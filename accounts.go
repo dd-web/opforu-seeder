@@ -7,13 +7,19 @@ import (
 )
 
 type Account struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Username  string             `json:"username" bson:"username"`
-	Email     string             `json:"email" bson:"email"`
-	Role      string             `json:"role" bson:"role"`
-	Password  string             `json:"password_hash" bson:"password_hash"`
-	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	ID       primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	Username string             `json:"username" bson:"username"`
+	Email    string             `json:"email" bson:"email"`
+
+	// public - mod - admin
+	Role string `json:"role" bson:"role"`
+
+	// active - suspended - banned - deleted
+	Status string `json:"status" bson:"status"`
+
+	Password  string    `json:"password_hash" bson:"password_hash"`
+	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
 
 // new empty account ptr
@@ -26,6 +32,7 @@ func (a *Account) Randomize(password string) {
 	a.Username = GetUsername()
 	a.Email = GetEmail()
 	a.Role = GetWeightedRole()
+	a.Status = GetWeightedAccountStatus()
 	a.Password = password
 	a.CreatedAt = time.Now().UTC()
 	a.UpdatedAt = time.Now().UTC()

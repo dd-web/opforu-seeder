@@ -159,6 +159,27 @@ func (s *MongoStore) GenIdentityFor(userId primitive.ObjectID, role string) (*Id
 	return identity, nil
 }
 
+func (s *MongoStore) UpdateIdentityThread(identityId, threadId primitive.ObjectID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	col := s.DB.Collection("identities")
+	filter := bson.M{"_id": identityId}
+	update := bson.M{"$set": bson.M{"thread": threadId}}
+	result := col.FindOneAndUpdate(ctx, filter, update)
+	if result.Err() != nil {
+		return result.Err()
+	}
+
+	var identity Identity
+
+	if err := result.Decode(&identity); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // generate a random number of threads between min and max per board
 func (s *MongoStore) GenThreads(min, max int) error {
 	fmt.Println("Generating threads")
@@ -170,7 +191,8 @@ func (s *MongoStore) GenThreads(min, max int) error {
 	for _, board := range boardList {
 		fmt.Println("Generating threads for board:", board.Title)
 
-		threadDocs := []interface{}{}
+		// threadDocs := []interface{}{}
+		threadIds := []primitive.ObjectID{}
 		threadCount := RandomIntBetween(min, max)
 
 		// generate each thread data (save outside of loop to save time)
@@ -191,50 +213,164 @@ func (s *MongoStore) GenThreads(min, max int) error {
 			thread := NewEmptyThread()
 			thread.Randomize(board.ID, authorIdentity.ID)
 
-			threadDocs = append(threadDocs, thread)
+			// save thread to db
+			threadCtx, tCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer tCancel()
+
+			threadCol := s.DB.Collection("threads")
+			threadResponse, err := threadCol.InsertOne(threadCtx, thread)
+			if err != nil {
+				return fmt.Errorf("error inserting thread document: %v", err)
+			}
+
+			newThreadId := threadResponse.InsertedID.(primitive.ObjectID)
+			thread.ID = newThreadId
+
+			// update identity with thread id
+			{
+				err := s.UpdateIdentityThread(authorIdentity.ID, newThreadId)
+				if err != nil {
+					fmt.Println("Error updating identity with thread id:", err)
+					return fmt.Errorf("error updating identity with thread id: %v", err)
+				}
+
+			}
+
+			// generate posts for thread
+			{
+				err := s.GenPostsForThread(thread, 5, 100, board)
+				if err != nil {
+					fmt.Println("Error generating posts for thread:", err)
+					return fmt.Errorf("error generating posts for thread: %v", err)
+				}
+			}
+
+			threadIds = append(threadIds, threadResponse.InsertedID.(primitive.ObjectID))
 		}
 
-		// save threads to db
-		threadCol := s.DB.Collection("threads")
-		threadCtx, tCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer tCancel()
-
-		threadResponse, err := threadCol.InsertMany(threadCtx, threadDocs)
-		if err != nil {
-			return fmt.Errorf("error inserting thread documents: %v", err)
-		}
-
-		var threadIdList []primitive.ObjectID
-
-		threadIDs := threadResponse.InsertedIDs
-		for _, id := range threadIDs {
-			// fmt.Println("Thread ID:", id)
-			threadIdList = append(threadIdList, id.(primitive.ObjectID))
-		}
-
-		board.Threads = threadIdList
+		// update board with thread ids
+		board.Threads = threadIds
 		fltr := bson.M{"_id": board.ID}
-		updt := bson.M{"$set": bson.M{"threads": threadIdList}}
+		updt := bson.M{"$set": bson.M{"threads": threadIds, "post_ref": board.PostRef}}
 
 		boardCtx, bCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer bCancel()
 
 		boardCol := s.DB.Collection("boards")
-		bResult, err := boardCol.UpdateOne(boardCtx, fltr, updt)
+		_, err := boardCol.UpdateOne(boardCtx, fltr, updt)
 		if err != nil {
 			fmt.Println("Error updating board with thread ids:", err)
 			return fmt.Errorf("error updating board with thread ids: %v", err)
 		}
 
-		fmt.Println("Generated Threads in Board:", board.Title, "Thread Count:", len(threadIdList))
-		fmt.Println("Updated board with thread ids:", bResult.ModifiedCount)
-
-		// update board with thread ids
+		fmt.Println("Generated Threads in Board:", board.Title, "Thread Count:", len(threadIds))
 
 	}
 
 	return nil
+}
 
+// generate a random number of posts between min and max for a thread
+func (s *MongoStore) GenPostsForThread(t *Thread, min, max int, b *Board) error {
+	postCount := RandomIntBetween(min, max)
+	postDocs := []interface{}{}
+	postIds := []primitive.ObjectID{}
+
+	// create each post
+	for i := 0; i < postCount; i++ {
+		b.PostRef++
+		author, err := s.GetRandomUser()
+		if err != nil {
+			fmt.Println("Error getting random user:", err)
+			return fmt.Errorf("error getting random user: %v", err)
+		}
+
+		var postIdentity Identity
+		var identityExists bool = true
+
+		identityCtx, idenCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer idenCancel()
+
+		identityCol := s.DB.Collection("identities")
+		identityFilter := bson.M{"user": author.ID, "thread": t.ID}
+		identityResult := identityCol.FindOne(identityCtx, identityFilter)
+
+		err = identityResult.Decode(&postIdentity)
+		if err != nil {
+			identityExists = false
+			// if err == mongo.ErrNoDocuments {
+			// 	identityExists = false
+			// } else {
+			// 	fmt.Println("Error decoding identity:", err)
+			// 	return fmt.Errorf("error decoding identity: %v", err)
+			// }
+		}
+
+		// if identity doesn't exist, create it
+		if !identityExists {
+			identityRole := GetWeightedIdentityRole()
+			newIdentity, err := s.GenIdentityFor(author.ID, identityRole)
+			if err != nil {
+				fmt.Println("Error generating identity for author:", err)
+				return fmt.Errorf("error generating identity for author: %v", err)
+			}
+
+			// if generated role is mod, update threads mod list
+			if identityRole == "mod" {
+				// currentMods := t.Mods
+				// modArr := []primitive.ObjectID{author.ID}
+				// t.Mods = append(modArr, currentMods...)
+				t.Mods = append(t.Mods, newIdentity.ID)
+			}
+
+			postIdentity = *newIdentity
+			postIdentity.Thread = t.ID
+
+			err = s.UpdateIdentityThread(postIdentity.ID, t.ID)
+			if err != nil {
+				fmt.Println("Error updating identity with thread id:", err)
+				return fmt.Errorf("error updating identity with thread id: %v", err)
+			}
+		}
+
+		post := NewEmptyPost()
+		post.Randomize(t.Board, t.ID, postIdentity.ID)
+		post.PostNumber = b.PostRef
+		postDocs = append(postDocs, post)
+	}
+
+	// save posts to db
+	postCtx, pCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer pCancel()
+
+	postCol := s.DB.Collection("posts")
+	pResponse, err := postCol.InsertMany(postCtx, postDocs)
+	if err != nil {
+		fmt.Println("Error inserting post documents:", err)
+		return fmt.Errorf("error inserting post documents: %v", err)
+	}
+
+	for _, id := range pResponse.InsertedIDs {
+		postIds = append(postIds, id.(primitive.ObjectID))
+	}
+
+	// update thread with post id's
+	t.Posts = postIds
+	fltr := bson.M{"_id": t.ID}
+	updt := bson.M{"$set": bson.M{"posts": t.Posts, "mods": t.Mods}}
+
+	threadCtx, tCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer tCancel()
+
+	threadCol := s.DB.Collection("threads")
+	_, err = threadCol.UpdateOne(threadCtx, fltr, updt)
+	if err != nil {
+		fmt.Println("Error updating thread with post ids:", err)
+		return fmt.Errorf("error updating thread with post ids: %v", err)
+	}
+
+	fmt.Printf("	%d Posts generated in thread %s \n", len(pResponse.InsertedIDs), t.ID)
+	return nil
 }
 
 // return a random user
