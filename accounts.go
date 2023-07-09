@@ -99,7 +99,6 @@ func (s *MongoStore) PersistAccounts() error {
 	}
 
 	fmt.Printf(" - Persisted %d %s documents to database\n", len(response.InsertedIDs), "account")
-	// fmt.Printf("Persisted %v accounts to DB \n", len(response.InsertedIDs))
 
 	return nil
 }

@@ -20,7 +20,6 @@ func (s *MongoStore) GenCollections() {
 			fmt.Println("Error creating collection:", name, err)
 			continue
 		}
-		fmt.Println("Creating Collection:", name)
 	}
 }
 

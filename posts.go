@@ -41,9 +41,13 @@ func (p *Post) Randomize(boardId, threadId, creatorId primitive.ObjectID) {
 
 // Generate Posts for each thread
 func (s *MongoStore) GeneratePosts(min, max int) {
+	fmt.Print("\033[s")
+
 	for index, thread := range s.cThreads {
 		postCount := RandomIntBetween(min, max)
-		fmt.Printf("Generating %v posts for thread %v of %v\n", postCount, index, len(s.cThreads))
+		progress := int(float64(index) / float64(len(s.cThreads)) * float64(postCount*len(s.cThreads)-index))
+		fmt.Print("\033[G\033[K")
+		fmt.Printf(" - Generating Posts: %v/%v", progress, postCount*len(s.cThreads))
 
 		for i := 0; i < postCount; i++ {
 			postBoard := s.GetBoardByID(thread.Board)
@@ -65,6 +69,9 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 			s.cPosts = append(s.cPosts, post)
 		}
 	}
+
+	fmt.Print("\033[G\033[K")
+	fmt.Printf(" - Generating Posts: %v/%v", len(s.cPosts), len(s.cPosts))
 
 }
 

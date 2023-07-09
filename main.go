@@ -86,26 +86,27 @@ func main() {
 	fmt.Println("Creating Collections")
 	store.GenCollections()
 
-	fmt.Println("Creating Accounts")
+	fmt.Printf("\n-----------------------------------------------------\n")
+	fmt.Println("Collections Generated - Generating Data")
+	fmt.Printf("-----------------------------------------------------\n\n")
+
+	fmt.Println(" - Generating Accounts")
 	store.GenerateAccounts(150, 300)
 
-	// create our specific accounts
 	devAccount := NewAccount("supafiya", "devduncan89@gmail.com", "admin", "123")
 	store.cAccounts = append(store.cAccounts, devAccount)
 
-	fmt.Println("Generating Boards")
+	fmt.Println(" - Generating Boards")
 	store.GenerateBoards()
 
-	fmt.Println("Generating Articles")
+	fmt.Println(" - Generating Articles")
 	store.GenerateArticles(20, 60)
 
-	fmt.Println("Generating Threads")
+	fmt.Println(" - Generating Threads")
 	store.GenerateThreads(200, 500) // between 200 and 500 total threads (all boards)
+	store.GeneratePosts(5, 60)      // generates between 5 and 60 posts per thread
 
-	fmt.Println("Generating Posts")
-	store.GeneratePosts(5, 60) // generates between 5 and 60 posts per thread
-
-	fmt.Printf("\n-----------------------------------------------------\n")
+	fmt.Printf("\n\n-----------------------------------------------------\n")
 	fmt.Println("Finished Generating Data - Persisting to Database")
 	fmt.Printf("-----------------------------------------------------\n\n")
 
@@ -153,5 +154,5 @@ func getMongoDBConnectionString() string {
 		"MONGO_HOST",
 		"MONGO_PORT",
 	}
-	return fmt.Sprintf("mongodb://%s:%s/", os.Getenv(envKeys[0]), os.Getenv(envKeys[1]))
+	return fmt.Sprintf("mongodb://%s:%s/", ensureEnvVarVaild(os.Getenv(envKeys[0])), ensureEnvVarVaild(os.Getenv(envKeys[1])))
 }
