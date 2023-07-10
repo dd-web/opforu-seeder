@@ -410,21 +410,21 @@ func GetSentence() string {
 // return random paragraph
 func GetParagraph() string {
 	sc := RandomIntBetween(3, 10)
-	paragraph := "  "
+	paragraph := "<p>"
 	for i := 0; i < sc; i++ {
-		paragraph = paragraph + GetSentence() + ". "
+		paragraph = paragraph + GetSentence()
 	}
-	return paragraph + "\n\n"
+	return paragraph + "</p>"
 }
 
 // return random number of paragraphs between min and max
 func GetParagraphsBetween(min, max int) string {
 	pc := RandomIntBetween(min, max)
-	paragraphs := ""
+	paragraphs := "<div class=\"thread-body\">"
 	for i := 0; i < pc; i++ {
 		paragraphs = paragraphs + GetParagraph()
 	}
-	return paragraphs
+	return paragraphs + "</div>"
 }
 
 // weighted roles
