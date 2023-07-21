@@ -7,7 +7,7 @@ import (
 )
 
 // collections to generate
-var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities"}
+var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities", "media_sources", "media"}
 
 // Generate Collections
 func (s *MongoStore) GenCollections() {

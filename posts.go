@@ -12,8 +12,9 @@ type Post struct {
 	ID primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 
 	// each board has it's own post count reference for each post
-	PostNumber int    `json:"post_number" bson:"post_number"`
-	Body       string `json:"body" bson:"body"`
+	PostNumber int                  `json:"post_number" bson:"post_number"`
+	Body       string               `json:"body" bson:"body"`
+	Media      []primitive.ObjectID `json:"media" bson:"media"`
 
 	// identity of the user who created the post
 	Creator   primitive.ObjectID `json:"creator" bson:"creator"`
@@ -25,7 +26,9 @@ type Post struct {
 
 // new empty post ptr
 func NewEmptyPost() *Post {
-	return &Post{}
+	return &Post{
+		Media: []primitive.ObjectID{},
+	}
 }
 
 // randomize post values
@@ -50,7 +53,9 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 		fmt.Printf(" - Generating Posts: %v/%v", progress, postCount*len(s.cThreads))
 
 		for i := 0; i < postCount; i++ {
+			mediaCt := RandomIntBetween(0, 9)
 			postBoard := s.GetBoardByID(thread.Board)
+
 			s.PostRefs[postBoard.Short]++
 			postBoard.PostRef = s.PostRefs[postBoard.Short]
 
@@ -60,6 +65,13 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 			post := NewEmptyPost()
 			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID)
 			post.PostNumber = s.PostRefs[postBoard.Short]
+			pmedIds, err := s.GenerateMediaCount(mediaCt)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			post.Media = pmedIds
 
 			if postCreatorIdentity.Role == "mod" && !thread.HasMod(postCreatorIdentity.ID) {
 				thread.Mods = append(thread.Mods, postCreatorIdentity.ID)

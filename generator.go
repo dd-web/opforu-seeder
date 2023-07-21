@@ -1,11 +1,19 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
+	"io"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 )
 
+// @TODO maybe better to use byte arrays for performance - char codes via rune (int32)
+// probably wont matter if it's lorem specifically or not, in which case the dataset can
+// be significantly reduced while also increasing variance of the output
 // lorem ipsum generator
 var words_lorem = []string{"lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit",
 	"a", "ac", "accumsan", "ad", "aenean", "aliquam", "aliquet", "ante",
@@ -291,6 +299,53 @@ var categories = []*[]string{
 	&words_nouns,
 }
 
+// image base url
+var imageBaseUrl = "https://picsum.photos/id/"
+
+// some image sizes
+var imageSourceSizes = []string{
+	// 4:3
+	"640/480",
+	"800/600",
+	"1024/768",
+	// 16:9
+	"640/360",
+	"800/450",
+	"960/540",
+}
+
+// image thumbnail sizes
+var imageThumbnailSizes = []string{
+	// 4:3
+	"160/120",
+	"200/150",
+	"320/240",
+	// 16:9
+	"160/90",
+	"320/180",
+	"480/270",
+}
+
+// image file extensions
+var imageFileExtensions = []string{
+	"jpg",
+	"jpeg",
+	"png",
+	"gif",
+	"webp",
+	"bmp",
+	"svg",
+}
+
+// video flle extensions
+var videoFileExtensions = []string{
+	"mp4",
+	"webm",
+	"ogg",
+	"avi",
+	"mov",
+}
+
 var SlugAlphabet = []string{
 	"a", "b", "c", "d", "e", "f", "g", "h", "i",
 	"j", "k", "l", "m", "n", "o", "p", "q", "r",
@@ -531,6 +586,70 @@ func GetRandomTags(min, max int) []string {
 		tags = append(tags, GetLoremWord())
 	}
 	return tags
+}
+
+// pair of image url sections
+func GetRandomImagePair() (string, string) {
+	ix := RandomIntBetween(0, len(imageSourceSizes)-1)
+	return imageSourceSizes[ix], imageThumbnailSizes[ix]
+}
+
+// format url with id and size
+func GetImageUrl(id int, size string) string {
+	return imageBaseUrl + fmt.Sprintf("%d/%s", id, size)
+}
+
+// gets a pair of image urls from a random id
+func FormatImageUrls(id int) (string, string) {
+	source, thumb := GetRandomImagePair()
+	return GetImageUrl(id, source), GetImageUrl(id, thumb)
+}
+
+// get random image file extension
+func GetRandomImageExt() string {
+	return imageFileExtensions[RandomIntBetween(0, len(imageFileExtensions)-1)]
+}
+
+// get random video file extension
+func GetRandomVideoExt() string {
+	return videoFileExtensions[RandomIntBetween(0, len(videoFileExtensions)-1)]
+}
+
+// get random media type
+func GetRandomMediaType() string {
+	num := RandomIntBetween(0, 100)
+	if num > 85 {
+		return "video"
+	}
+	return "image"
+}
+
+// get random media extension by type
+func GetRandomExtByType(mediaType string) string {
+	switch mediaType {
+	case "image":
+		return GetRandomImageExt()
+	case "video":
+		return GetRandomVideoExt()
+	}
+
+	return ""
+}
+
+// md5 checksum of file
+func GetFileChecksumMD5(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 // default password to use for dummy accounts
