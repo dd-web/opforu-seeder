@@ -13,46 +13,47 @@ type Account struct {
 	Username string             `json:"username" bson:"username"`
 	Email    string             `json:"email" bson:"email"`
 
-	// public - mod - admin
-	Role string `json:"role" bson:"role"`
+	Role   AccountRole   `json:"role" bson:"role"`
+	Status AccountStatus `json:"status" bson:"status"`
 
-	// active - suspended - banned - deleted
-	Status string `json:"status" bson:"status"`
+	Password string `json:"password_hash" bson:"password_hash"`
 
-	Password  string    `json:"password_hash" bson:"password_hash"`
-	CreatedAt time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
+	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
 // new empty account ptr
 func NewEmptyAccount() *Account {
-	return &Account{}
+	ts := time.Now().UTC()
+	return &Account{
+		CreatedAt: &ts,
+	}
 }
 
 // randomize accoutn values
-func (a *Account) Randomize(password string) {
+func (a *Account) Randomize() {
+	ts := time.Now().UTC()
 	a.Username = GetUsername()
 	a.ID = primitive.NewObjectID()
 	a.Email = GetEmail()
 	a.Role = GetWeightedRole()
 	a.Status = GetWeightedAccountStatus()
-	a.Password = password
-	a.CreatedAt = time.Now().UTC()
-	a.UpdatedAt = time.Now().UTC()
+	a.UpdatedAt = &ts
 }
 
 // create an account with sepcific values
 // username - email - role - password
-func NewAccount(u, e, r, p string) *Account {
+func NewAccount(u string, e string, r AccountRole, st AccountStatus) *Account {
+	ts := time.Now().UTC()
 	return &Account{
 		ID:        primitive.NewObjectID(),
-		Status:    "active",
+		Status:    st,
 		Username:  u,
 		Email:     e,
 		Role:      r,
-		Password:  p,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
 	}
 }
 
@@ -61,10 +62,10 @@ func (s *MongoStore) GenerateAccounts(min, max int) {
 	accountCount := RandomIntBetween(min, max)
 	for i := 0; i < accountCount; i++ {
 		account := NewEmptyAccount()
-		account.Randomize(GetDefaultPassword())
+		account.Randomize()
 		s.cAccounts = append(s.cAccounts, account)
 
-		if account.Role == "admin" {
+		if account.Role == AccountRoleAdmin {
 			s.cAdmins = append(s.cAdmins, &account.ID)
 		}
 
@@ -101,4 +102,56 @@ func (s *MongoStore) PersistAccounts() error {
 	fmt.Printf(" - Persisted %d %s documents to database\n", len(response.InsertedIDs), "account")
 
 	return nil
+}
+
+// enums
+
+type AccountStatus string
+
+const (
+	AccountStatusUnknown   AccountStatus = "unknown"
+	AccountStatusActive    AccountStatus = "active"
+	AccountStatusSuspended AccountStatus = "suspended"
+	AccountStatusBanned    AccountStatus = "banned"
+	AccountStatusDeleted   AccountStatus = "deleted"
+)
+
+func (a AccountStatus) String() string {
+	switch a {
+	case AccountStatusActive:
+		return "active"
+	case AccountStatusSuspended:
+		return "suspended"
+	case AccountStatusBanned:
+		return "banned"
+	case AccountStatusDeleted:
+		return "deleted"
+	default:
+		return "unknown"
+	}
+}
+
+type AccountRole string
+
+const (
+	AccountRoleUnknown AccountRole = "unknown"
+	AccountRolePublic  AccountRole = "public"
+	AccountRoleUser    AccountRole = "user"
+	AccountRoleMod     AccountRole = "mod"
+	AccountRoleAdmin   AccountRole = "admin"
+)
+
+func (a AccountRole) String() string {
+	switch a {
+	case AccountRolePublic:
+		return "public"
+	case AccountRoleUser:
+		return "user"
+	case AccountRoleMod:
+		return "mod"
+	case AccountRoleAdmin:
+		return "admin"
+	default:
+		return "unknown"
+	}
 }

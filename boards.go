@@ -25,15 +25,17 @@ func GetDefaultBoardCount() int {
 }
 
 type Board struct {
-	ID    primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Title string             `json:"title" bson:"title"`
+	ID primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 
-	// short 2-4 letter board identifier (used in url)
-	Short     string               `json:"short" bson:"short"`
-	Desc      string               `json:"desc" bson:"desc"`
-	Threads   []primitive.ObjectID `json:"threads" bson:"threads"`
-	CreatedAt time.Time            `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time            `json:"updated_at" bson:"updated_at"`
+	Title       string `json:"title" bson:"title"`
+	Short       string `json:"short" bson:"short"`
+	Description string `json:"description" bson:"description"`
+
+	Threads []primitive.ObjectID `json:"threads" bson:"threads"`
+
+	CreatedAt *time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at" bson:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at"`
 
 	// Keeps track of the current post number for that board
 	PostRef int `json:"post_ref" bson:"post_ref"`
@@ -47,14 +49,15 @@ func NewEmptyBoard() *Board {
 // create a board with specific values
 // title - short - desc
 func NewBoard(t, s, d string) *Board {
+	ts := time.Now().UTC()
 	return &Board{
-		Title:     t,
-		Short:     s,
-		Desc:      d,
-		Threads:   []primitive.ObjectID{},
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		PostRef:   0,
+		Title:       t,
+		Short:       s,
+		Description: d,
+		Threads:     []primitive.ObjectID{},
+		CreatedAt:   &ts,
+		UpdatedAt:   &ts,
+		PostRef:     0,
 	}
 }
 

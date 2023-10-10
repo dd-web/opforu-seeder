@@ -104,7 +104,7 @@ func main() {
 	fmt.Println(" - Generating Accounts")
 	store.GenerateAccounts(150, 300)
 
-	devAccount := NewAccount("supafiya", "devduncan89@gmail.com", "admin", "123")
+	devAccount := NewAccount("supafiya", "devduncan89@gmail.com", AccountRoleAdmin, AccountStatusActive)
 	store.cAccounts = append(store.cAccounts, devAccount)
 
 	fmt.Println(" - Generating Boards")

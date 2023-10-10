@@ -9,50 +9,54 @@ import (
 )
 
 type Identity struct {
-	ID    primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
-	User  primitive.ObjectID `json:"user" bson:"user,omitempty"`
-	Name  string             `json:"name" bson:"name"`
-	Style string             `json:"style" bson:"style"`
+	ID      primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	Account primitive.ObjectID `json:"account" bson:"account,omitempty"`
 
-	// public - mod - creator
-	Role string `json:"role" bson:"role"`
+	Name  string `json:"name" bson:"name"`
+	Style string `json:"style" bson:"style"`
 
-	// active - suspended - banned
-	Status string `json:"status" bson:"status"`
+	Role   ThreadRole     `json:"role" bson:"role"`
+	Status IdentityStatus `json:"status" bson:"status"`
 
-	Thread    primitive.ObjectID `json:"thread" bson:"thread"`
-	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	Thread primitive.ObjectID `json:"thread" bson:"thread"`
+
+	CreatedAt *time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at" bson:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
 // new empty identity ptr
 func NewEmptyIdentity() *Identity {
-	return &Identity{}
+	ts := time.Now().UTC()
+	return &Identity{
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
+	}
 }
 
 // randomize identity values
-func (i *Identity) Randomize(userId primitive.ObjectID, role string) {
+func (i *Identity) Randomize(userId primitive.ObjectID, role ThreadRole) {
+	ts := time.Now().UTC()
 	i.ID = primitive.NewObjectID()
 	i.Name = GetSlug(8, 10)
 	i.Style = GetIdentityStyle()
 	i.Status = GetWeightedIdentityStatus()
-	i.User = userId
+	i.Account = userId
 	i.Role = role
-	i.CreatedAt = time.Now().UTC()
-	i.UpdatedAt = time.Now().UTC()
+	i.UpdatedAt = &ts
 }
 
 // weighted identity role
 func (i *Identity) SetWeightedRole() {
 	if RandomIntBetween(0, 100) < 95 {
-		i.Role = "public"
+		i.Role = ThreadRoleUser
 	} else {
-		i.Role = "mod"
+		i.Role = ThreadRoleMod
 	}
 }
 
 // Generate Identity for a thread
-func (s *MongoStore) GenerateThreadIdentity(userId primitive.ObjectID, role string) *Identity {
+func (s *MongoStore) GenerateThreadIdentity(userId primitive.ObjectID, role ThreadRole) *Identity {
 	identity := NewEmptyIdentity()
 	identity.Randomize(userId, role)
 	return identity
@@ -63,7 +67,7 @@ func (s *MongoStore) GetUserThreadIdentity(userId, threadId primitive.ObjectID) 
 	threadIdentity := s.cUserThreadIdentitys[threadId][userId]
 
 	if threadIdentity == nil {
-		threadIdentity = s.GenerateThreadIdentity(userId, "public")
+		threadIdentity = s.GenerateThreadIdentity(userId, ThreadRoleUser)
 		threadIdentity.SetWeightedRole()
 		threadIdentity.Thread = threadId
 		s.cUserThreadIdentitys[threadId][userId] = threadIdentity
@@ -93,4 +97,30 @@ func (s *MongoStore) PersistIdentities() error {
 	fmt.Printf(" - Persisted %d %s documents to database\n", len(response.InsertedIDs), "identities")
 
 	return nil
+}
+
+// enums
+type IdentityStatus string
+
+const (
+	IdentityStatusUnknown   IdentityStatus = "unknown"
+	IdentityStatusActive    IdentityStatus = "active"
+	IdentityStatusSuspended IdentityStatus = "suspended"
+	IdentityStatusBanned    IdentityStatus = "banned"
+	IdentityStatusDeleted   IdentityStatus = "deleted"
+)
+
+func (i IdentityStatus) String() string {
+	switch i {
+	case IdentityStatusActive:
+		return "active"
+	case IdentityStatusSuspended:
+		return "suspended"
+	case IdentityStatusBanned:
+		return "banned"
+	case IdentityStatusDeleted:
+		return "deleted"
+	default:
+		return "unknown"
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -483,64 +484,56 @@ func GetParagraphsBetween(min, max int) string {
 }
 
 // weighted roles
-func GetWeightedRole() string {
+func GetWeightedRole() AccountRole {
 	num := RandomIntBetween(0, 100)
-	if num < 85 {
-		return "public"
-	} else if num < 97 {
-		return "mod"
+	if num < 90 {
+		return AccountRoleUser
+	} else if num < 93 {
+		return AccountRoleMod
+	} else if num < 98 {
+		return AccountRoleAdmin
 	} else {
-		return "admin"
+		return AccountRolePublic
 	}
 }
 
 // weighted account status
-func GetWeightedAccountStatus() string {
+func GetWeightedAccountStatus() AccountStatus {
 	num := RandomIntBetween(0, 100)
 	if num < 92 {
-		return "active"
+		return AccountStatusActive
 	} else if num < 95 {
-		return "suspended"
+		return AccountStatusSuspended
 	} else if num < 98 {
-		return "banned"
+		return AccountStatusBanned
 	} else {
-		return "deleted"
+		return AccountStatusDeleted
 	}
 }
 
 // weighted thread status
-func GetWeightedThreadStatus() string {
+func GetWeightedThreadStatus() ThreadStatus {
 	num := RandomIntBetween(0, 100)
 	if num < 90 {
-		return "open"
+		return ThreadStatusOpen
 	} else if num < 95 {
-		return "closed"
+		return ThreadStatusClosed
 	} else if num < 97 {
-		return "archived"
+		return ThreadStatusArchived
 	} else {
-		return "deleted"
-	}
-}
-
-// weighted identity role
-func GetWeightedIdentityRole() string {
-	num := RandomIntBetween(0, 100)
-	if num < 95 {
-		return "public"
-	} else {
-		return "mod"
+		return ThreadStatusDeleted
 	}
 }
 
 // weighted identity status
-func GetWeightedIdentityStatus() string {
+func GetWeightedIdentityStatus() IdentityStatus {
 	num := RandomIntBetween(0, 100)
 	if num < 92 {
-		return "active"
+		return IdentityStatusActive
 	} else if num < 98 {
-		return "suspended"
+		return IdentityStatusSuspended
 	} else {
-		return "banned"
+		return IdentityStatusBanned
 	}
 }
 
@@ -575,7 +568,7 @@ var aliasSuffixes = []string{
 
 // return identity style string
 func GetIdentityStyle() string {
-	return "variant-" + aliasPrefixes[RandomIntBetween(0, len(aliasPrefixes)-1)] + "-" + aliasSuffixes[RandomIntBetween(0, len(aliasSuffixes)-1)]
+	return "variant-" + aliasPrefixes[RandomIntBetween(0, len(aliasPrefixes))] + "-" + aliasSuffixes[RandomIntBetween(0, len(aliasSuffixes))]
 }
 
 // return between min and max tags
@@ -590,7 +583,7 @@ func GetRandomTags(min, max int) []string {
 
 // pair of image url sections
 func GetRandomImagePair() (string, string) {
-	ix := RandomIntBetween(0, len(imageSourceSizes)-1)
+	ix := RandomIntBetween(0, len(imageSourceSizes))
 	return imageSourceSizes[ix], imageThumbnailSizes[ix]
 }
 
@@ -607,12 +600,12 @@ func FormatImageUrls(id int) (string, string) {
 
 // get random image file extension
 func GetRandomImageExt() string {
-	return imageFileExtensions[RandomIntBetween(0, len(imageFileExtensions)-1)]
+	return imageFileExtensions[RandomIntBetween(0, len(imageFileExtensions))]
 }
 
 // get random video file extension
 func GetRandomVideoExt() string {
-	return videoFileExtensions[RandomIntBetween(0, len(videoFileExtensions)-1)]
+	return videoFileExtensions[RandomIntBetween(0, len(videoFileExtensions))]
 }
 
 // get random media type
@@ -655,4 +648,9 @@ func GetFileChecksumMD5(path string) (string, error) {
 // default password to use for dummy accounts
 func GetDefaultPassword() string {
 	return "123"
+}
+
+func BlendSmooth(a, b, weight float64) float64 {
+	var m float64 = math.Max(weight-math.Abs(a-b), 0) / weight
+	return math.Min(a, b) - m*m*m*weight/5.0
 }

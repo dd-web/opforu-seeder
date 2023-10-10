@@ -11,35 +11,41 @@ import (
 type Post struct {
 	ID primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 
-	// each board has it's own post count reference for each post
-	PostNumber int                  `json:"post_number" bson:"post_number"`
-	Body       string               `json:"body" bson:"body"`
-	Media      []primitive.ObjectID `json:"media" bson:"media"`
+	PostNumber int    `json:"post_number" bson:"post_number"`
+	Body       string `json:"body" bson:"body"`
 
-	// identity of the user who created the post
-	Creator   primitive.ObjectID `json:"creator" bson:"creator"`
-	Board     primitive.ObjectID `json:"board" bson:"board"`
-	Thread    primitive.ObjectID `json:"thread" bson:"thread"`
-	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	Media []primitive.ObjectID `json:"media" bson:"media"`
+
+	Account primitive.ObjectID `json:"account" bson:"account"`
+	Creator primitive.ObjectID `json:"creator" bson:"creator"`
+
+	Board  primitive.ObjectID `json:"board" bson:"board"`
+	Thread primitive.ObjectID `json:"thread" bson:"thread"`
+
+	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
 // new empty post ptr
 func NewEmptyPost() *Post {
+	ts := time.Now().UTC()
 	return &Post{
-		Media: []primitive.ObjectID{},
+		ID:        primitive.NewObjectID(),
+		Media:     []primitive.ObjectID{},
+		CreatedAt: &ts,
 	}
 }
 
 // randomize post values
-func (p *Post) Randomize(boardId, threadId, creatorId primitive.ObjectID) {
-	p.ID = primitive.NewObjectID()
+func (p *Post) Randomize(boardId, threadId, creatorId, acctId primitive.ObjectID) {
+	ts := time.Now().UTC()
 	p.Board = boardId
 	p.Thread = threadId
-	p.Creator = creatorId // identity
+	p.Creator = creatorId
+	p.Account = acctId
 	p.Body = GetParagraphsBetween(1, 8)
-	p.CreatedAt = time.Now().UTC()
-	p.UpdatedAt = time.Now().UTC()
+	p.UpdatedAt = &ts
 }
 
 // Generate Posts for each thread
@@ -63,7 +69,7 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 			postCreatorIdentity := s.GetUserThreadIdentity(postCreatorAccount, thread.ID)
 
 			post := NewEmptyPost()
-			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID)
+			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID, postCreatorAccount)
 			post.PostNumber = s.PostRefs[postBoard.Short]
 			pmedIds, err := s.GenerateMediaCount(mediaCt)
 			if err != nil {
