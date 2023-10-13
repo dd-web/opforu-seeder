@@ -454,7 +454,7 @@ func GetLoremWord() string {
 
 // return random sentence
 func GetSentence() string {
-	wc := RandomIntBetween(15, 20)
+	wc := RandomIntBetween(6, 14)
 	sentence := ""
 	for i := 0; i < wc; i++ {
 		sentence = sentence + GetLoremWord() + " "
@@ -464,7 +464,7 @@ func GetSentence() string {
 
 // return random paragraph
 func GetParagraph() string {
-	sc := RandomIntBetween(3, 10)
+	sc := RandomIntBetween(1, 6)
 	paragraph := "<p>"
 	for i := 0; i < sc; i++ {
 		paragraph = paragraph + GetSentence()
