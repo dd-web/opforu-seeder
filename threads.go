@@ -16,7 +16,6 @@ type Thread struct {
 
 	Board primitive.ObjectID `json:"board" bson:"board"`
 
-	// identity & account of creator
 	Creator primitive.ObjectID `json:"creator" bson:"creator"`
 	Account primitive.ObjectID `json:"account" bson:"account"`
 
@@ -24,7 +23,6 @@ type Thread struct {
 	Media []primitive.ObjectID `json:"media" bson:"media"`
 	Mods  []primitive.ObjectID `json:"mods" bson:"mods"`
 
-	// open - closed - archived - deleted
 	Status ThreadStatus `json:"status" bson:"status"`
 	Tags   []string     `json:"tags" bson:"tags"`
 
@@ -37,24 +35,24 @@ type Thread struct {
 func NewEmptyThread() *Thread {
 	ts := time.Now().UTC()
 	return &Thread{
+		ID:        primitive.NewObjectID(),
+		Title:     GetSentence(),
+		Body:      GetParagraphsBetween(1, 4),
+		Slug:      GetSlug(12, 16),
+		Posts:     []primitive.ObjectID{},
+		Status:    GetWeightedThreadStatus(),
+		Tags:      GetRandomTags(),
 		CreatedAt: &ts,
 	}
 }
 
-// randomize thread values
+// Randomize thread values
 func (t *Thread) Randomize(boardId, creatorId, accountId primitive.ObjectID) {
 	ts := time.Now().UTC()
-	t.ID = primitive.NewObjectID()
-	t.Title = GetSentence()
-	t.Body = GetParagraphsBetween(3, 10)
-	t.Slug = GetSlug(8, 16)
 	t.Board = boardId
-	t.Creator = creatorId // identity
-	t.Account = accountId // account
-	t.Posts = []primitive.ObjectID{}
+	t.Creator = creatorId
+	t.Account = accountId
 	t.Mods = []primitive.ObjectID{creatorId}
-	t.Status = GetWeightedThreadStatus()
-	t.Tags = GetRandomTags(0, 5)
 	t.UpdatedAt = &ts
 }
 
@@ -63,6 +61,8 @@ func (s *MongoStore) GenerateThreads(min, max int) {
 	threadCount := RandomIntBetween(min, max)
 
 	for i := 0; i < threadCount; i++ {
+		fmt.Print("\033[G\033[K")
+		fmt.Printf(" - Generating Threads: %v/%v", i+1, threadCount)
 		mediaCt := RandomIntBetween(0, 9)
 		threadBoard := s.GetRandomBoard()
 
@@ -90,6 +90,8 @@ func (s *MongoStore) GenerateThreads(min, max int) {
 		s.cUserThreadIdentitys[thread.ID][threadCreatorAccount] = threadCreatorIdentity
 		s.cThreads = append(s.cThreads, thread)
 	}
+
+	fmt.Print("\n")
 }
 
 // Thread Mod list contains id?

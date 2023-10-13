@@ -72,6 +72,8 @@ func GetBoardIndex(index int) (*Board, error) {
 // Generate boards
 func (s *MongoStore) GenerateBoards() {
 	for i := 0; i < len(defaultBoards); i++ {
+		fmt.Print("\033[G\033[K")
+		fmt.Printf(" - Generating Boards: %v/%v", i+1, len(defaultBoards))
 		board, err := GetBoardIndex(i)
 		if err != nil {
 			log.Fatal(err)
@@ -79,6 +81,7 @@ func (s *MongoStore) GenerateBoards() {
 		board.ID = primitive.NewObjectID()
 		s.cBoards = append(s.cBoards, board)
 	}
+	fmt.Print("\n")
 }
 
 // Get Random Board ID
@@ -105,7 +108,7 @@ func (s *MongoStore) GetBoardByID(id primitive.ObjectID) *Board {
 	return board
 }
 
-// Persis Boards
+// Persist Boards
 func (s *MongoStore) PersistBoards() error {
 	docs := []interface{}{}
 
@@ -113,9 +116,5 @@ func (s *MongoStore) PersistBoards() error {
 		docs = append(docs, board)
 	}
 
-	if err := s.PersistDocuments(docs, "boards"); err != nil {
-		return err
-	}
-
-	return nil
+	return s.PersistDocuments(docs, "boards")
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -80,10 +79,13 @@ func (s *MongoStore) GenerateMediaSources(min, max int) {
 	mediaSourceCount := RandomIntBetween(min, max)
 
 	for i := 0; i < mediaSourceCount; i++ {
+		fmt.Print("\033[G\033[K")
+		fmt.Printf(" - Generating Media Sources: %v/%v", i+1, mediaSourceCount)
 		mediaSource := NewEmptyMediaSource()
 		mediaSource.Randomize(i)
 		s.cMediaSourceMap[i] = mediaSource
 	}
+	fmt.Print("\n")
 }
 
 // generates a list of media ids for a post
@@ -129,39 +131,20 @@ func (s *MongoStore) GenerateMediaForPost(id int) (*Media, error) {
 	return m, nil
 }
 
-// Persist Media and Media Sources
+// persist media
 func (s *MongoStore) PersistMedia() error {
-	mCtx, mCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer mCancel()
-	msrcCtx, msrcCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer msrcCancel()
-
-	mDocs := []interface{}{}
-	msrcDocs := []interface{}{}
-
+	docs := []interface{}{}
 	for _, media := range s.cMedia {
-		mDocs = append(mDocs, media)
+		docs = append(docs, media)
 	}
+	return s.PersistDocuments(docs, "media")
+}
 
+// persist media sources
+func (s *MongoStore) PersistMediaSources() error {
+	docs := []interface{}{}
 	for _, msrc := range s.cMediaSourceMap {
-		msrcDocs = append(msrcDocs, msrc)
+		docs = append(docs, msrc)
 	}
-
-	msrcCol := s.DB.Collection("media_sources")
-	msrcRes, err := msrcCol.InsertMany(msrcCtx, msrcDocs)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf(" - Persisted %d media source documents to database\n", len(msrcRes.InsertedIDs))
-
-	mediaCol := s.DB.Collection("media")
-	mRes, err := mediaCol.InsertMany(mCtx, mDocs)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf(" - Persisted %d media documents to database\n", len(mRes.InsertedIDs))
-
-	return nil
+	return s.PersistDocuments(docs, "media_sources")
 }

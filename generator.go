@@ -5,12 +5,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"math"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
+
+	gonanoid "github.com/matoous/go-nanoid/v2"
 )
+
+var HrSplit string = "\n-----------------------------------------------------\n"
 
 // @TODO maybe better to use byte arrays for performance - char codes via rune (int32)
 // probably wont matter if it's lorem specifically or not, in which case the dataset can
@@ -347,27 +352,21 @@ var videoFileExtensions = []string{
 	"mov",
 }
 
-var SlugAlphabet = []string{
-	"a", "b", "c", "d", "e", "f", "g", "h", "i",
-	"j", "k", "l", "m", "n", "o", "p", "q", "r",
-	"s", "t", "u", "v", "x", "y", "z", "-", "_",
-	"0", "1", "2", "3", "4", "5", "6", "7", "8",
-	"9",
-}
+var SlugAlphabet string = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 // random int between min and max
 func RandomIntBetween(min, max int) int {
-	return min + rand.Intn(max-min)
+	return rand.Intn(max-min) + min
 }
 
 // returns a random category of words
 func SelectRandomCategory() *[]string {
-	return categories[RandomIntBetween(0, len(categories)-1)]
+	return categories[RandomIntBetween(0, len(categories))]
 }
 
 // returns a random word from a category
 func SelectRandomWord(c *[]string) string {
-	str := (*c)[RandomIntBetween(0, len(*c)-1)]
+	str := (*c)[RandomIntBetween(0, len(*c))]
 	return strings.ReplaceAll(str, " ", "")
 }
 
@@ -388,8 +387,8 @@ func RandomLettersBetween(min, max int) string {
 
 // some random username
 func GetUsername() string {
-	prefix := word_partials_prefix[RandomIntBetween(0, len(word_partials_prefix)-1)]
-	suffix := word_partials_suffix[RandomIntBetween(0, len(word_partials_suffix)-1)]
+	prefix := word_partials_prefix[RandomIntBetween(0, len(word_partials_prefix))]
+	suffix := word_partials_suffix[RandomIntBetween(0, len(word_partials_suffix))]
 	between := RandomLettersBetween(0, 5)
 	word := ""
 
@@ -445,12 +444,12 @@ func GetEmail() string {
 		break
 	}
 
-	return word + "@" + words_domains[RandomIntBetween(0, len(words_domains)-1)] + "." + words_subdomains[RandomIntBetween(0, len(words_subdomains)-1)]
+	return word + "@" + words_domains[RandomIntBetween(0, len(words_domains))] + "." + words_subdomains[RandomIntBetween(0, len(words_subdomains))]
 }
 
 // return random lorem word
 func GetLoremWord() string {
-	return words_lorem[RandomIntBetween(0, len(words_lorem)-1)]
+	return words_lorem[RandomIntBetween(0, len(words_lorem))]
 }
 
 // return random sentence
@@ -470,17 +469,17 @@ func GetParagraph() string {
 	for i := 0; i < sc; i++ {
 		paragraph = paragraph + GetSentence()
 	}
-	return paragraph + "</p>"
+	return paragraph + "</p> "
 }
 
 // return random number of paragraphs between min and max
 func GetParagraphsBetween(min, max int) string {
 	pc := RandomIntBetween(min, max)
-	paragraphs := "<div class=\"thread-body\">"
+	paragraphs := "<div class=\"thread-body\"> "
 	for i := 0; i < pc; i++ {
 		paragraphs = paragraphs + GetParagraph()
 	}
-	return paragraphs + "</div>"
+	return paragraphs + "</div> "
 }
 
 // weighted roles
@@ -540,11 +539,8 @@ func GetWeightedIdentityStatus() IdentityStatus {
 // return random slug between min and max
 func GetSlug(min, max int) string {
 	slugLen := RandomIntBetween(min, max)
-	slugStr := ""
-	for i := 0; i < slugLen; i++ {
-		slugStr = slugStr + SlugAlphabet[RandomIntBetween(0, len(SlugAlphabet)-1)]
-	}
-	return slugStr
+	slug, _ := gonanoid.Generate(SlugAlphabet, slugLen)
+	return slug
 }
 
 // identity alias prefixes
@@ -572,8 +568,8 @@ func GetIdentityStyle() string {
 }
 
 // return between min and max tags
-func GetRandomTags(min, max int) []string {
-	tagCount := RandomIntBetween(min, max)
+func GetRandomTags() []string {
+	tagCount := RandomIntBetween(0, 6)
 	tags := []string{}
 	for i := 0; i < tagCount; i++ {
 		tags = append(tags, GetLoremWord())
@@ -645,12 +641,21 @@ func GetFileChecksumMD5(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// default password to use for dummy accounts
-func GetDefaultPassword() string {
-	return "123"
+// hashes a password with bcrypt
+func HashPassword(plaintext string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(plaintext), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
 }
 
-func BlendSmooth(a, b, weight float64) float64 {
-	var m float64 = math.Max(weight-math.Abs(a-b), 0) / weight
-	return math.Min(a, b) - m*m*m*weight/5.0
+// compare a hashed password with plaintext
+func ComparePass(hashed, plaintext string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plaintext))
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	return true
 }

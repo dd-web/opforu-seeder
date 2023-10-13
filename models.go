@@ -3,18 +3,36 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 )
 
 // collections to generate
-var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities", "media_sources", "media"}
+var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities", "media_sources", "media", "sessions"}
+
+func (s *MongoStore) SetupDB() {
+	hrPrint("Setup - Reset & Regenerate")
+	fmt.Printf(" - Connected to MongoDB using database: %s\n", s.DBName)
+
+	fmt.Print(" - Dropping Collections")
+	err := s.DB.Drop(context.Background())
+	if err != nil {
+		log.Fatal("Error dropping database:", err)
+	}
+
+	s.GenCollections()
+
+}
 
 // Generate Collections
 func (s *MongoStore) GenCollections() {
+	// fmt.Print("\033[s")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	for _, name := range collections {
+	for i, name := range collections {
+		fmt.Print("\033[G\033[K")
+		fmt.Printf(" - Recreating Collections: %v/%v", i+1, len(collections))
 		err := s.DB.CreateCollection(ctx, name)
 		if err != nil {
 			fmt.Println("Error creating collection:", name, err)

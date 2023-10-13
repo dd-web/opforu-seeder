@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -27,34 +26,33 @@ type Post struct {
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// new empty post ptr
+// New post ptr
 func NewEmptyPost() *Post {
 	ts := time.Now().UTC()
 	return &Post{
 		ID:        primitive.NewObjectID(),
 		Media:     []primitive.ObjectID{},
+		Body:      GetParagraphsBetween(1, 5),
 		CreatedAt: &ts,
 	}
 }
 
-// randomize post values
+// Randomize unreferenced fields while populating referenced fields
 func (p *Post) Randomize(boardId, threadId, creatorId, acctId primitive.ObjectID) {
 	ts := time.Now().UTC()
 	p.Board = boardId
 	p.Thread = threadId
 	p.Creator = creatorId
 	p.Account = acctId
-	p.Body = GetParagraphsBetween(1, 8)
 	p.UpdatedAt = &ts
 }
 
 // Generate Posts for each thread
 func (s *MongoStore) GeneratePosts(min, max int) {
-	fmt.Print("\033[s")
-
 	for index, thread := range s.cThreads {
 		postCount := RandomIntBetween(min, max)
 		progress := int(float64(index) / float64(len(s.cThreads)) * float64(postCount*len(s.cThreads)-index))
+
 		fmt.Print("\033[G\033[K")
 		fmt.Printf(" - Generating Posts: %v/%v", progress, postCount*len(s.cThreads))
 
@@ -95,21 +93,11 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 
 // Persist Posts
 func (s *MongoStore) PersistPosts() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	docs := []interface{}{}
 
 	for _, post := range s.cPosts {
 		docs = append(docs, post)
 	}
 
-	postCol := s.DB.Collection("posts")
-	response, err := postCol.InsertMany(ctx, docs)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf(" - Persisted %d %s documents to database\n", len(response.InsertedIDs), "post")
-	return nil
+	return s.PersistDocuments(docs, "posts")
 }

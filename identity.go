@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -25,22 +23,21 @@ type Identity struct {
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// new empty identity ptr
+// New identity ptr with some default values
 func NewEmptyIdentity() *Identity {
 	ts := time.Now().UTC()
 	return &Identity{
+		ID:        primitive.NewObjectID(),
+		Name:      GetSlug(8, 10),
+		Style:     GetIdentityStyle(),
+		Status:    GetWeightedIdentityStatus(),
 		CreatedAt: &ts,
-		UpdatedAt: &ts,
 	}
 }
 
-// randomize identity values
+// Randomize unreferenced fields while populating referenced fields
 func (i *Identity) Randomize(userId primitive.ObjectID, role ThreadRole) {
 	ts := time.Now().UTC()
-	i.ID = primitive.NewObjectID()
-	i.Name = GetSlug(8, 10)
-	i.Style = GetIdentityStyle()
-	i.Status = GetWeightedIdentityStatus()
 	i.Account = userId
 	i.Role = role
 	i.UpdatedAt = &ts
@@ -79,27 +76,15 @@ func (s *MongoStore) GetUserThreadIdentity(userId, threadId primitive.ObjectID) 
 
 // Persist Identitys
 func (s *MongoStore) PersistIdentities() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	docs := []interface{}{}
 
 	for _, identity := range s.cIdentites {
 		docs = append(docs, identity)
 	}
 
-	identityCol := s.DB.Collection("identities")
-	response, err := identityCol.InsertMany(ctx, docs)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf(" - Persisted %d %s documents to database\n", len(response.InsertedIDs), "identities")
-
-	return nil
+	return s.PersistDocuments(docs, "identities")
 }
 
-// enums
 type IdentityStatus string
 
 const (
