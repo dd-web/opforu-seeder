@@ -10,6 +10,7 @@ import (
 // collections to generate
 var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities", "media_sources", "media", "sessions"}
 
+// Drops and recreates all collections for a clean slate
 func (s *MongoStore) SetupDB() {
 	hrPrint("Setup - Reset & Regenerate")
 	fmt.Printf(" - Connected to MongoDB using database: %s\n", s.DBName)
@@ -21,12 +22,11 @@ func (s *MongoStore) SetupDB() {
 	}
 
 	s.GenCollections()
-
+	hrPrint("Setup Finished - Now Generating Data")
 }
 
 // Generate Collections
 func (s *MongoStore) GenCollections() {
-	// fmt.Print("\033[s")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -55,4 +55,27 @@ func (s *MongoStore) PersistDocuments(docs []interface{}, colName string) error 
 	fmt.Printf(" - Persisted %d %s documents to database\n", len(docs), colName)
 
 	return nil
+}
+
+// Persists all generated data to the database via their respective Persist fns
+func (s *MongoStore) PersistAll() {
+	hrPrint("Finished Generating Data - Persisting to Database")
+
+	storeFns := []func() error{
+		s.PersistAccounts,
+		s.PersistSessions,
+		s.PersistArticles,
+		s.PersistBoards,
+		s.PersistThreads,
+		s.PersistPosts,
+		s.PersistIdentities,
+		s.PersistMediaSources,
+		s.PersistMedia,
+	}
+
+	for _, fn := range storeFns {
+		if err := fn(); err != nil {
+			log.Fatal(err)
+		}
+	}
 }

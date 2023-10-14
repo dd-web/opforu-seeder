@@ -39,9 +39,8 @@ type MongoStore struct {
 
 func main() {
 	store := NewMongoStore()
-	store.SetupDB()
 
-	hrPrint("Setup Finished - Now Generating Data")
+	store.SetupDB()
 
 	store.GenerateAccounts(150, 300)     // between 150 and 300 accounts
 	store.GenerateBoards()               // creates all default boards
@@ -50,25 +49,7 @@ func main() {
 	store.GenerateThreads(200, 500)      // between 200 and 500 total threads (all boards)
 	store.GeneratePosts(5, 60)           // generates between 5 and 60 posts per thread
 
-	hrPrint("Finished Generating Data - Persisting to Database")
-
-	var storeFns []func() error = []func() error{
-		store.PersistAccounts,
-		store.PersistSessions,
-		store.PersistArticles,
-		store.PersistBoards,
-		store.PersistThreads,
-		store.PersistPosts,
-		store.PersistIdentities,
-		store.PersistMediaSources,
-		store.PersistMedia,
-	}
-
-	for _, fn := range storeFns {
-		if err := fn(); err != nil {
-			log.Fatal(err)
-		}
-	}
+	store.PersistAll()
 
 	fmt.Printf("\n\n *** Finsihed Seeding Database *** \n\n")
 }

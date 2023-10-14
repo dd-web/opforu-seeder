@@ -68,7 +68,7 @@ func (s *MongoStore) GenerateAccounts(min, max int) {
 	accountCount := RandomIntBetween(min, max)
 	for i := 0; i < accountCount; i++ {
 		fmt.Print("\033[G\033[K")
-		fmt.Printf(" - Generating Accounts & Sessions: %v/%v", i+1, accountCount)
+		fmt.Printf(" - Generating Accounts & Sessions (expensive hashes are slow): %v/%v", i+1, accountCount)
 
 		account := NewEmptyAccount()
 		account.Randomize()
