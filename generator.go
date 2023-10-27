@@ -607,10 +607,19 @@ func GetRandomVideoExt() string {
 // get random media type
 func GetRandomMediaType() string {
 	num := RandomIntBetween(0, 100)
-	if num > 85 {
+	if num > 90 {
 		return "video"
 	}
 	return "image"
+}
+
+// get random AssetType (not string)
+func GetRandomAssetType() AssetType {
+	num := RandomIntBetween(0, 100)
+	if num > 90 {
+		return AssetTypeVideo
+	}
+	return AssetTypeImage
 }
 
 // get random media extension by type
@@ -623,6 +632,17 @@ func GetRandomExtByType(mediaType string) string {
 	}
 
 	return ""
+}
+
+func GetRandomAssetExt(at AssetType) string {
+	switch at {
+	case AssetTypeImage:
+		return GetRandomImageExt()
+	case AssetTypeVideo:
+		return GetRandomVideoExt()
+	default:
+		return ""
+	}
 }
 
 // md5 checksum of file

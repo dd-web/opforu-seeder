@@ -27,14 +27,14 @@ type MongoStore struct {
 	cIdentites []*Identity
 	cAccounts  []*Account
 	cArticles  []*Article
-	cMedia     []*Media
 	cSessions  []*Session
+	cAssets    []*Asset
 
 	cAdmins []*primitive.ObjectID
 	cMods   []*primitive.ObjectID
 
 	cUserThreadIdentitys map[primitive.ObjectID]map[primitive.ObjectID]*Identity
-	cMediaSourceMap      map[int]*MediaSource
+	cAssetSrcMap         map[int]*AssetSource
 }
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 	store.GenerateAccounts(150, 300)     // between 150 and 300 accounts
 	store.GenerateBoards()               // creates all default boards
 	store.GenerateArticles(20, 60)       // between 20 and 60 articles
-	store.GenerateMediaSources(400, 800) // between 400 and 800 media sources``
+	store.GenerateAssetSources(400, 800) // between 400 and 800 media sources
 	store.GenerateThreads(200, 500)      // between 200 and 500 total threads (all boards)
 	store.GeneratePosts(5, 60)           // generates between 5 and 60 posts per thread
 
@@ -110,7 +110,7 @@ func NewMongoStore() *MongoStore {
 		DBName:               database,
 		PostRefs:             make(map[string]int),
 		cUserThreadIdentitys: make(map[primitive.ObjectID]map[primitive.ObjectID]*Identity),
-		cMediaSourceMap:      make(map[int]*MediaSource),
+		cAssetSrcMap:         make(map[int]*AssetSource),
 		StartTime:            time.Now().UTC(),
 	}
 }

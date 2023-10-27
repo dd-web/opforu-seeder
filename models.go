@@ -8,7 +8,7 @@ import (
 )
 
 // collections to generate
-var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities", "media_sources", "media", "sessions"}
+var collections []string = []string{"accounts", "boards", "threads", "posts", "articles", "identities", "asset_sources", "assets", "sessions"}
 
 // Drops and recreates all collections for a clean slate
 func (s *MongoStore) SetupDB() {
@@ -69,8 +69,10 @@ func (s *MongoStore) PersistAll() {
 		s.PersistThreads,
 		s.PersistPosts,
 		s.PersistIdentities,
-		s.PersistMediaSources,
-		s.PersistMedia,
+		s.PersistAssetSrc,
+		s.PersistAssets,
+		// s.PersistMediaSources,
+		// s.PersistMedia,
 	}
 
 	for _, fn := range storeFns {

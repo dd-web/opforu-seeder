@@ -19,9 +19,9 @@ type Thread struct {
 	Creator primitive.ObjectID `json:"creator" bson:"creator"`
 	Account primitive.ObjectID `json:"account" bson:"account"`
 
-	Posts []primitive.ObjectID `json:"posts" bson:"posts"`
-	Media []primitive.ObjectID `json:"media" bson:"media"`
-	Mods  []primitive.ObjectID `json:"mods" bson:"mods"`
+	Posts  []primitive.ObjectID `json:"posts" bson:"posts"`
+	Assets []primitive.ObjectID `json:"media" bson:"media"`
+	Mods   []primitive.ObjectID `json:"mods" bson:"mods"`
 
 	Status ThreadStatus `json:"status" bson:"status"`
 	Tags   []string     `json:"tags" bson:"tags"`
@@ -39,6 +39,7 @@ func NewEmptyThread() *Thread {
 		Title:     GetSentence(),
 		Body:      GetParagraphsBetween(1, 4),
 		Slug:      GetSlug(12, 16),
+		Assets:    []primitive.ObjectID{},
 		Posts:     []primitive.ObjectID{},
 		Status:    GetWeightedThreadStatus(),
 		Tags:      GetRandomTags(),
@@ -79,13 +80,13 @@ func (s *MongoStore) GenerateThreads(min, max int) {
 
 		s.cUserThreadIdentitys[thread.ID] = make(map[primitive.ObjectID]*Identity)
 
-		pmedIds, err := s.GenerateMediaCount(mediaCt)
+		pmedIds, err := s.GenerateAssetCount(mediaCt, threadCreatorAccount)
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
 
-		thread.Media = pmedIds
+		thread.Assets = pmedIds
 
 		s.cUserThreadIdentitys[thread.ID][threadCreatorAccount] = threadCreatorIdentity
 		s.cThreads = append(s.cThreads, thread)

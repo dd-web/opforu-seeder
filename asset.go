@@ -7,144 +7,148 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type AssetChecksum struct {
-	MD5    string `json:"md5" bson:"md5"`
-	SHA256 string `json:"sha256" bson:"sha256"`
+type AssetType string
+
+const (
+	AssetTypeImage AssetType = "image"
+	AssetTypeVideo AssetType = "video"
+)
+
+// unique asset - make references if it already exists
+type AssetSource struct {
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
+
+	Details struct {
+		Avatar FileCtx `json:"avatar" bson:"avatar"`
+		Source FileCtx `json:"source" bson:"source"`
+	}
+
+	AssetType AssetType            `json:"asset_type" bson:"asset_type"`
+	Uploaders []primitive.ObjectID `json:"uploaders" bson:"uploaders"`
+
+	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// DO NOT inline unless you know what you're doing
-type PairedAsset[T comparable] struct {
-	Source T `json:"source" bson:"source"`
-	Thumb  T `json:"thumb" bson:"thumb"`
+// reference (populated from source when send to client)
+type Asset struct {
+	ID       primitive.ObjectID `json:"_id" bson:"_id"`
+	SourceID primitive.ObjectID `json:"source_id" bson:"source_id"`
+
+	AccountID primitive.ObjectID `json:"account_id" bson:"account_id"`
+
+	FileName string   `json:"file_name" bson:"file_name"`
+	Tags     []string `json:"tags" bson:"tags"`
+
+	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-type MediaSource struct {
-	ID primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
-
-	FileSize PairedAsset[int]    `json:"file_size" bson:"file_size"`
-	URL      PairedAsset[string] `json:"url" bson:"url"`
-
-	MimeType  string    `json:"mime_type" bson:"mime_type"`
-	MediaType string    `json:"media_type" bson:"media_type"` // image or video
-	CreatedAt time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
-
-	Checksum AssetChecksum `json:"checksum" bson:"checksum"`
-
-	FileExtension string `json:"file_extension" bson:"file_extension"`
+type FileCtx struct {
+	Height    uint64 `json:"height" bson:"height"`
+	Width     uint64 `json:"width" bson:"width"`
+	FileSize  uint64 `json:"file_size" bson:"file_size"`
+	URL       string `json:"url" bson:"url"`
+	Extension string `json:"extension" bson:"extension"`
 }
 
-type Media struct {
-	ID           primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
-	Source       primitive.ObjectID `json:"source" bson:"source"`
-	UserFilename string             `json:"user_filename" bson:"user_filename"`
+// Generate Asset Sources - posts/threads pick from these to create references
+func NewAssetSrc(index int) *AssetSource {
+	ts := time.Now().UTC()
+	assetSrc := &AssetSource{
+		ID:        primitive.NewObjectID(),
+		AssetType: GetRandomAssetType(),
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
+	}
 
-	URL PairedAsset[string] `json:"url" bson:"url"`
+	sourceURL, avatarURL := FormatImageUrls(index)
+	extension := GetRandomAssetExt(assetSrc.AssetType)
 
-	// below reference the source (not thumbnail)
-	FileSize  int       `json:"file_size" bson:"file_size"`
-	MediaType string    `json:"media_type" bson:"media_type"` // image or video
-	CreatedAt time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
+	assetSrc.Details.Source.URL = sourceURL
+	assetSrc.Details.Avatar.URL = avatarURL
+	assetSrc.Details.Source.Extension = extension
+	assetSrc.Details.Avatar.Extension = extension
+
+	return assetSrc
 }
 
-// new empty media source - a media struct musn't be generated without a source reference
-func NewEmptyMediaSource() *MediaSource {
-	return &MediaSource{}
-}
+// generates asset sources to create Assets from (references)
+func (s *MongoStore) GenerateAssetSources(min, max int) {
+	assetCount := RandomIntBetween(min, max)
 
-// new empty media
-func NewEmptyMedia() *Media {
-	return &Media{}
-}
-
-// randomize media source values - never use with an existing media source
-func (m *MediaSource) Randomize(id int) {
-	mType := GetRandomMediaType()
-	src, thumb := FormatImageUrls(id)
-	ext := GetRandomExtByType(mType)
-
-	m.ID = primitive.NewObjectID()
-	m.CreatedAt = time.Now().UTC()
-	m.UpdatedAt = time.Now().UTC()
-	m.URL.Source = src
-	m.URL.Thumb = thumb
-	m.FileExtension = ext
-	m.MediaType = mType
-	m.MimeType = mType + "/" + ext
-}
-
-// Generate Media Sources - Posts will pick from these to create references
-func (s *MongoStore) GenerateMediaSources(min, max int) {
-	mediaSourceCount := RandomIntBetween(min, max)
-
-	for i := 0; i < mediaSourceCount; i++ {
+	for i := 0; i < assetCount; i++ {
 		fmt.Print("\033[G\033[K")
-		fmt.Printf(" - Generating Media Sources: %v/%v", i+1, mediaSourceCount)
-		mediaSource := NewEmptyMediaSource()
-		mediaSource.Randomize(i)
-		s.cMediaSourceMap[i] = mediaSource
+		fmt.Printf(" - Generating Assets: %v/%v", i+1, assetCount)
+		assetsrc := NewAssetSrc(i)
+		s.cAssetSrcMap[i] = assetsrc
 	}
 	fmt.Print("\n")
 }
 
-// generates a list of media ids for a post
-func (s *MongoStore) GenerateMediaCount(num int) ([]primitive.ObjectID, error) {
-	if num > len(s.cMediaSourceMap) {
-		return nil, fmt.Errorf("invalid media source count %d", num)
+// generates assets for a post or thread and returns their id's
+func (s *MongoStore) GenerateAssetCount(count int, creatorId primitive.ObjectID) ([]primitive.ObjectID, error) {
+	if count > len(s.cAssetSrcMap) {
+		return nil, fmt.Errorf("invalid asset source count %d out of bounds", count)
 	}
 
-	mediaIds := []primitive.ObjectID{}
-	msIx := RandomIntBetween(9, len(s.cMediaSourceMap)-num)
+	ids := []primitive.ObjectID{}
+	indexId := RandomIntBetween(9, len(s.cAssetSrcMap)-count)
 
-	for i := 0; i < num; i++ {
-		media, err := s.GenerateMediaForPost(msIx + i)
+	for i := 0; i < count; i++ {
+		asset, err := s.GenerateAsset(indexId+i, creatorId)
 		if err != nil {
-			fmt.Printf("Error generating media for post: %v\n - skipping\n", err)
+			fmt.Printf("Error generating asset for post: %v\n - skipping\n", err)
 			continue
 		}
-		mediaIds = append(mediaIds, media.ID)
+		ids = append(ids, asset.ID)
 	}
 
-	return mediaIds, nil
+	return ids, nil
 }
 
-// Generate Media from id for a post
-func (s *MongoStore) GenerateMediaForPost(id int) (*Media, error) {
-	if id > len(s.cMediaSourceMap) {
-		return nil, fmt.Errorf("invalid media source id %d", id)
+// creates an asset from the source locaated at the index and returns a pointer to it
+func (s *MongoStore) GenerateAsset(index int, creator primitive.ObjectID) (*Asset, error) {
+	if index > len(s.cAssetSrcMap) {
+		return nil, fmt.Errorf("invalid asset source index %d", index)
 	}
 
-	msrc := s.cMediaSourceMap[id]
-	m := NewEmptyMedia()
+	ts := time.Now().UTC()
 
-	m.ID = primitive.NewObjectID()
-	m.Source = msrc.ID
-	m.URL.Source = msrc.URL.Source
-	m.URL.Thumb = msrc.URL.Thumb
-	m.MediaType = msrc.MediaType
-	m.CreatedAt = time.Now().UTC()
-	m.UpdatedAt = time.Now().UTC()
+	assetSource := s.cAssetSrcMap[index]
+	assetSource.Uploaders = append(assetSource.Uploaders, creator)
 
-	s.cMedia = append(s.cMedia, m)
+	asset := &Asset{
+		ID:        primitive.NewObjectID(),
+		SourceID:  assetSource.ID,
+		AccountID: creator,
+		FileName:  SelectAnyWord(),
+		Tags:      GetRandomTags(),
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
+	}
 
-	return m, nil
+	s.cAssets = append(s.cAssets, asset)
+
+	return asset, nil
 }
 
-// persist media
-func (s *MongoStore) PersistMedia() error {
+// saves assets to the db
+func (s *MongoStore) PersistAssets() error {
 	docs := []interface{}{}
-	for _, media := range s.cMedia {
-		docs = append(docs, media)
+	for _, asset := range s.cAssets {
+		docs = append(docs, asset)
 	}
-	return s.PersistDocuments(docs, "media")
+	return s.PersistDocuments(docs, "assets")
 }
 
-// persist media sources
-func (s *MongoStore) PersistMediaSources() error {
+// saves asset sources to the db
+func (s *MongoStore) PersistAssetSrc() error {
 	docs := []interface{}{}
-	for _, msrc := range s.cMediaSourceMap {
-		docs = append(docs, msrc)
+	for _, assetSrc := range s.cAssetSrcMap {
+		docs = append(docs, assetSrc)
 	}
-	return s.PersistDocuments(docs, "media_sources")
+	return s.PersistDocuments(docs, "asset_sources")
 }

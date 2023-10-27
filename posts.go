@@ -13,7 +13,7 @@ type Post struct {
 	PostNumber int    `json:"post_number" bson:"post_number"`
 	Body       string `json:"body" bson:"body"`
 
-	Media []primitive.ObjectID `json:"media" bson:"media"`
+	Assets []primitive.ObjectID `json:"media" bson:"media"`
 
 	Account primitive.ObjectID `json:"account" bson:"account"`
 	Creator primitive.ObjectID `json:"creator" bson:"creator"`
@@ -31,7 +31,7 @@ func NewEmptyPost() *Post {
 	ts := time.Now().UTC()
 	return &Post{
 		ID:        primitive.NewObjectID(),
-		Media:     []primitive.ObjectID{},
+		Assets:    []primitive.ObjectID{},
 		Body:      GetParagraphsBetween(1, 5),
 		CreatedAt: &ts,
 	}
@@ -69,13 +69,13 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 			post := NewEmptyPost()
 			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID, postCreatorAccount)
 			post.PostNumber = s.PostRefs[postBoard.Short]
-			pmedIds, err := s.GenerateMediaCount(mediaCt)
+			pmedIds, err := s.GenerateAssetCount(mediaCt, postCreatorAccount)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
-			post.Media = pmedIds
+			post.Assets = pmedIds
 
 			if postCreatorIdentity.Role == "mod" && !thread.HasMod(postCreatorIdentity.ID) {
 				thread.Mods = append(thread.Mods, postCreatorIdentity.ID)
