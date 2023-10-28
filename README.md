@@ -10,7 +10,7 @@ This was originally intended as a proof of concept which worked quite well, sque
 
 if you want to copy this go ahead. The main idea is to eliminate the network calls. because the GO compiler is smart enough to inline the function chain the performance is pretty signifigant on a single thread and memory usage is low even though it's purely a utility that _holds data_ until it fits the schema.
 
-I haven't tested it but i'm 99% sure you're going to lose performance multithreading something like this. if using SQL you can generate a schema from migrations (without inputting any data yet) down to a single schema state and generate your data from there. Asyncronous blocks even sequential operations. if you don't NEED it, don't use it.
+I haven't tested it but i'm pretty sure you're going to lose performance multithreading something like this. Asyncronous blocks even sequential operations so unless you want to store the data asynchronously I wouldn't even bother with it. Or if you're chunking. I duno.
 
 ## Usage
 
