@@ -14,7 +14,7 @@ type Post struct {
 	Creator    primitive.ObjectID `json:"creator" bson:"creator"`
 
 	Body   string               `json:"body" bson:"body"`
-	Assets []primitive.ObjectID `json:"media" bson:"media"`
+	Assets []primitive.ObjectID `json:"assets" bson:"assets"`
 
 	Board  primitive.ObjectID `json:"board" bson:"board"`
 	Thread primitive.ObjectID `json:"thread" bson:"thread"`
