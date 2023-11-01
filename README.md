@@ -6,11 +6,9 @@ This project has changed goals and now remains as a single solution seeder to a 
 
 ## About
 
-This was originally intended as a proof of concept which worked quite well, squeezing around 4million records per sec on a single thread. The idea was to input a schema and have a generative data seeder. There came many problems and ultimately I came to the conclusion it's far easier just to do this again and adapt to any usecase.
+This was originally intended as a proof of concept which worked quite well. The idea was to input a schema and have a generative data seeder. There came many problems and ultimately I came to the conclusion it's far easier just to do this again and adapt it to any usecase.
 
-if you want to copy this go ahead. The main idea is to eliminate the network calls. because the GO compiler is smart enough to inline the function chain the performance is pretty signifigant on a single thread and memory usage is low even though it's purely a utility that _holds data_ until it fits the schema.
-
-I haven't tested it but i'm pretty sure you're going to lose performance multithreading something like this. Asyncronous blocks even sequential operations so unless you want to store the data asynchronously I wouldn't even bother with it. Or if you're chunking. I duno.
+The main idea is to eliminate the network call wherever possible, so the entirety of the data is generated and calls bulk store operations. This tool only cares about the final state of the data so if you're using migrations you'll need to know the final state of the schema. It keeps track of references in a shared store, so they may be updated/retreived as necessary. It also means if you're going to use this approach it should be designed carefully to ensure references are always valid when accessed. 
 
 ## Usage
 
@@ -32,7 +30,5 @@ Ensure you have the correct .env variables set to establish a connection to the 
 ## Notes
 
 Yeah so this is just a seeder for an old project I used to learn web frameworks. I'm leaving it up here because I hate seeding for 20 minutes and figure some other people might want to do something similar for themselves. 
-
-I understand the program needs to keep good track of the entire database state but it's lifetime is small. it runs for a second and it's gone. Right now it runs a bit longer than that because it's running an encryption on each password for each account, and it's an expensive function. other than that it's fast.
 
 If you want to take this and adapt it to your own project feel free to do so.
