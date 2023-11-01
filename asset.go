@@ -33,9 +33,9 @@ type AssetSource struct {
 
 // reference (populated from source when send to client)
 type Asset struct {
-	ID       primitive.ObjectID `json:"_id" bson:"_id"`
-	SourceID primitive.ObjectID `json:"source_id" bson:"source_id"`
+	ID primitive.ObjectID `json:"_id" bson:"_id"`
 
+	SourceID  primitive.ObjectID `json:"source_id" bson:"source_id"`
 	AccountID primitive.ObjectID `json:"account_id" bson:"account_id"`
 
 	FileName string   `json:"file_name" bson:"file_name"`
@@ -47,32 +47,12 @@ type Asset struct {
 }
 
 type FileCtx struct {
-	Height    uint64 `json:"height" bson:"height"`
-	Width     uint64 `json:"width" bson:"width"`
-	FileSize  uint64 `json:"file_size" bson:"file_size"`
+	Height    uint16 `json:"height" bson:"height"`
+	Width     uint16 `json:"width" bson:"width"`
+	Size      uint64 `json:"size" bson:"size"`
+	SizeStr   string `json:"size_str" bson:"size_str"`
 	URL       string `json:"url" bson:"url"`
 	Extension string `json:"extension" bson:"extension"`
-}
-
-// Generate Asset Sources - posts/threads pick from these to create references
-func NewAssetSrc(index int) *AssetSource {
-	ts := time.Now().UTC()
-	assetSrc := &AssetSource{
-		ID:        primitive.NewObjectID(),
-		AssetType: GetRandomAssetType(),
-		CreatedAt: &ts,
-		UpdatedAt: &ts,
-	}
-
-	sourceURL, avatarURL := FormatImageUrls(index)
-	extension := GetRandomAssetExt(assetSrc.AssetType)
-
-	assetSrc.Details.Source.URL = sourceURL
-	assetSrc.Details.Avatar.URL = avatarURL
-	assetSrc.Details.Source.Extension = extension
-	assetSrc.Details.Avatar.Extension = extension
-
-	return assetSrc
 }
 
 // generates asset sources to create Assets from (references)
@@ -82,7 +62,7 @@ func (s *MongoStore) GenerateAssetSources(min, max int) {
 	for i := 0; i < assetCount; i++ {
 		fmt.Print("\033[G\033[K")
 		fmt.Printf(" - Generating Assets: %v/%v", i+1, assetCount)
-		assetsrc := NewAssetSrc(i)
+		assetsrc := GenerateAssetSource(i)
 		s.cAssetSrcMap[i] = assetsrc
 	}
 	fmt.Print("\n")

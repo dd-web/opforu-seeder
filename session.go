@@ -7,39 +7,64 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var (
+	// measurements of time
+	SECONDS_IN_MINUTE = 60
+	MINUTES_IN_HOUR   = 60
+	HOURS_IN_DAY      = 24
+
+	DAYS_IN_WEEK = 7
+	DAYS_IN_YEAR = 365
+
+	SECONDS_IN_HOUR = SECONDS_IN_MINUTE * MINUTES_IN_HOUR
+	SECONDS_IN_DAY  = SECONDS_IN_HOUR * HOURS_IN_DAY
+	SECONDS_IN_WEEK = SECONDS_IN_DAY * DAYS_IN_WEEK
+
+	MINUTES_IN_DAY  = MINUTES_IN_HOUR * HOURS_IN_DAY
+	MINUTES_IN_WEEK = MINUTES_IN_DAY * DAYS_IN_WEEK
+
+	HOURS_IN_WEEK = HOURS_IN_DAY * DAYS_IN_WEEK
+	HOURS_IN_YEAR = HOURS_IN_DAY * DAYS_IN_YEAR
+
+	// permissions
+	PUBLIC_SESSION_FIELDS   = []string{"created_at", "updated_at", "deleted_at"}
+	PERSONAL_SESSION_FIELDS = []string{"_id", "account_id", "session_id", "expires"}
+)
+
 type Session struct {
 	ID primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
 
 	SessionID string             `bson:"session_id" json:"session_id"`
-	AccountID primitive.ObjectID `bson:"account_id" json:"account_id"`
+	AccountID primitive.ObjectID `bson:"account_id,omitempty" json:"account_id,omitempty"`
 
-	Active bool `bson:"active" json:"active"`
+	Account *Account `bson:"account,omitempty" json:"account,omitempty"`
 
-	Expiry    *time.Time `bson:"expiry" json:"expiry"`
+	Expires *time.Time `bson:"expires" json:"expires"`
+
 	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
 	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
 // session from account id
-func NewSessionFromAccount(id primitive.ObjectID) *Session {
+func NewSessionFromAccount(account *Account) *Session {
 	now := time.Now().UTC()
-	expiry := time.Now().Add(3600 * time.Second).UTC()
-	nid := uuid.New()
+	exp := time.Now().Add(time.Duration(SECONDS_IN_DAY) * time.Second).UTC()
+
 	return &Session{
 		ID:        primitive.NewObjectID(),
-		AccountID: id,
-		SessionID: nid.String(),
-		Active:    true,
+		AccountID: account.ID,
+		Account:   account,
+		SessionID: uuid.NewString(),
 		CreatedAt: &now,
 		UpdatedAt: &now,
-		Expiry:    &expiry,
+		Expires:   &exp,
 	}
 }
 
 // tells us if the session has expired or not
 func (s *Session) IsExpired() bool {
-	return s.Expiry.Before(time.Now().UTC())
+	return s.Expires.Before(time.Now().UTC())
 }
 
 // Persist Sessions

@@ -10,13 +10,11 @@ import (
 type Post struct {
 	ID primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 
-	PostNumber int    `json:"post_number" bson:"post_number"`
-	Body       string `json:"body" bson:"body"`
+	PostNumber int                `json:"post_number" bson:"post_number"`
+	Creator    primitive.ObjectID `json:"creator" bson:"creator"`
 
+	Body   string               `json:"body" bson:"body"`
 	Assets []primitive.ObjectID `json:"media" bson:"media"`
-
-	Account primitive.ObjectID `json:"account" bson:"account"`
-	Creator primitive.ObjectID `json:"creator" bson:"creator"`
 
 	Board  primitive.ObjectID `json:"board" bson:"board"`
 	Thread primitive.ObjectID `json:"thread" bson:"thread"`
@@ -38,12 +36,11 @@ func NewEmptyPost() *Post {
 }
 
 // Randomize unreferenced fields while populating referenced fields
-func (p *Post) Randomize(boardId, threadId, creatorId, acctId primitive.ObjectID) {
+func (p *Post) Randomize(boardId, threadId, creatorId primitive.ObjectID) {
 	ts := time.Now().UTC()
 	p.Board = boardId
 	p.Thread = threadId
 	p.Creator = creatorId
-	p.Account = acctId
 	p.UpdatedAt = &ts
 }
 
@@ -67,7 +64,7 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 			postCreatorIdentity := s.GetUserThreadIdentity(postCreatorAccount, thread.ID)
 
 			post := NewEmptyPost()
-			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID, postCreatorAccount)
+			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID)
 			post.PostNumber = s.PostRefs[postBoard.Short]
 			pmedIds, err := s.GenerateAssetCount(mediaCt, postCreatorAccount)
 			if err != nil {

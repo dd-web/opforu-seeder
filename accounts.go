@@ -72,7 +72,7 @@ func (s *MongoStore) GenerateAccounts(min, max int) {
 
 		account := NewEmptyAccount()
 		account.Randomize()
-		session := NewSessionFromAccount(account.ID)
+		session := NewSessionFromAccount(account)
 
 		s.cSessions = append(s.cSessions, session)
 		s.cAccounts = append(s.cAccounts, account)

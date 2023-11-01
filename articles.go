@@ -13,6 +13,8 @@ type Article struct {
 	AuthorID  primitive.ObjectID   `json:"author" bson:"author"`
 	CoAuthors []primitive.ObjectID `json:"co_authors" bson:"co_authors"`
 
+	Status ArticleStatus `bson:"status" json:"status"`
+
 	Title string   `json:"title" bson:"title"`
 	Body  string   `json:"body" bson:"body"`
 	Slug  string   `json:"slug" bson:"slug"`
@@ -41,6 +43,7 @@ func (a *Article) Randomize() {
 	a.Title = GetSentence()
 	a.Tags = GetRandomTags()
 	a.Body = GetParagraphsBetween(3, 10)
+	a.Status = GetWeightedArticleStatus()
 	a.Slug = GetSlug(8, 16)
 	a.UpdatedAt = &ts
 }
@@ -75,4 +78,26 @@ func (s *MongoStore) PersistArticles() error {
 		docs = append(docs, article)
 	}
 	return s.PersistDocuments(docs, "articles")
+}
+
+type ArticleStatus string
+
+const (
+	ArticleStatusDraft     ArticleStatus = "draft"
+	ArticleStatusPublished ArticleStatus = "published"
+	ArticleStatusArchived  ArticleStatus = "archived"
+	ArticleStatusDeleted   ArticleStatus = "deleted"
+)
+
+func GetWeightedArticleStatus() ArticleStatus {
+	weight := RandomIntBetween(0, 100)
+	if weight < 85 {
+		return ArticleStatusPublished
+	} else if weight < 90 {
+		return ArticleStatusDraft
+	} else if weight < 95 {
+		return ArticleStatusArchived
+	} else {
+		return ArticleStatusDeleted
+	}
 }

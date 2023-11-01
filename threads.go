@@ -8,23 +8,23 @@ import (
 )
 
 type Thread struct {
-	ID primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	ID     primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	Status ThreadStatus       `json:"status" bson:"status"`
 
 	Title string `json:"title" bson:"title"`
 	Body  string `json:"body" bson:"body"`
 	Slug  string `json:"slug" bson:"slug"`
 
-	Board primitive.ObjectID `json:"board" bson:"board"`
-
+	Board   primitive.ObjectID `json:"board" bson:"board"`
 	Creator primitive.ObjectID `json:"creator" bson:"creator"`
-	Account primitive.ObjectID `json:"account" bson:"account"`
 
-	Posts  []primitive.ObjectID `json:"posts" bson:"posts"`
-	Assets []primitive.ObjectID `json:"media" bson:"media"`
-	Mods   []primitive.ObjectID `json:"mods" bson:"mods"`
+	Posts []primitive.ObjectID `json:"posts" bson:"posts"`
+	Mods  []primitive.ObjectID `json:"mods" bson:"mods"`
 
-	Status ThreadStatus `json:"status" bson:"status"`
-	Tags   []string     `json:"tags" bson:"tags"`
+	Assets []primitive.ObjectID `json:"assets" bson:"assets"`
+
+	Tags  []string     `json:"tags" bson:"tags"`
+	Flags []ThreadFlag `json:"flags" bson:"flags"`
 
 	CreatedAt *time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at" bson:"updated_at"`
@@ -48,11 +48,10 @@ func NewEmptyThread() *Thread {
 }
 
 // Randomize thread values
-func (t *Thread) Randomize(boardId, creatorId, accountId primitive.ObjectID) {
+func (t *Thread) Randomize(boardId, creatorId primitive.ObjectID) {
 	ts := time.Now().UTC()
 	t.Board = boardId
 	t.Creator = creatorId
-	t.Account = accountId
 	t.Mods = []primitive.ObjectID{creatorId}
 	t.UpdatedAt = &ts
 }
@@ -73,7 +72,7 @@ func (s *MongoStore) GenerateThreads(min, max int) {
 		s.cIdentites = append(s.cIdentites, threadCreatorIdentity)
 
 		thread := NewEmptyThread()
-		thread.Randomize(threadBoard.ID, threadCreatorIdentity.ID, threadCreatorAccount)
+		thread.Randomize(threadBoard.ID, threadCreatorIdentity.ID)
 
 		threadCreatorIdentity.Thread = thread.ID
 		threadBoard.Threads = append(threadBoard.Threads, thread.ID)
@@ -168,3 +167,14 @@ func (s ThreadRole) String() string {
 		return "unknown"
 	}
 }
+
+// Bitfield flags for threads
+type ThreadFlag uint
+
+const (
+	ThreadFlagNone   ThreadFlag = iota      // thread has no flags
+	ThreadFlagSticky ThreadFlag = 1 << iota // thread is sticky
+	ThreadFlagLocked ThreadFlag = 1 << iota // thread is locked
+	ThreadFlagHidden ThreadFlag = 1 << iota // thread is hidden
+	ThreadFlagNSFW   ThreadFlag = 1 << iota // thread is NSFW
+)

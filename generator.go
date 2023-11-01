@@ -9,7 +9,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
@@ -562,6 +564,50 @@ var aliasSuffixes = []string{
 	"surface",
 }
 
+type ByteSize int
+
+const (
+	BYTE ByteSize = 8 << iota
+	KB   ByteSize = 1 << (10 * iota)
+	MB   ByteSize = 1 << (10 * iota)
+	GB   ByteSize = 1 << (10 * iota)
+	TB   ByteSize = 1 << (10 * iota)
+)
+
+var minFileSize int = int(BYTE) * 64 // 512 bytes
+var maxFileSize int = int(MB) * 16   // 16 megabytes
+
+var avatarFileSizeMultiplier int = 4
+
+func GetRandomFileSize() int {
+	return RandomIntBetween(minFileSize, maxFileSize)
+}
+
+// takes the number of total bytes and formats a string of the size
+func FormatByteString(size int) string {
+	if size < int(KB) {
+		return strconv.Itoa(size) + "b"
+	}
+
+	if size < int(MB) {
+		// get the number of kilobytes with 2 decimal places and return as a string
+		return strconv.FormatFloat(float64(size)/float64(KB), 'f', 2, 64) + "kb"
+	}
+
+	if size < int(GB) {
+		// get the number of megabytes with 2 decimal places and return as a string
+		return strconv.FormatFloat(float64(size)/float64(MB), 'f', 2, 64) + "mb"
+	}
+
+	if size < int(TB) {
+		// get the number of gigabytes with 2 decimal places and return as a string
+		return strconv.FormatFloat(float64(size)/float64(GB), 'f', 2, 64) + "gb"
+	}
+
+	// get the number of terabytes with 2 decimal places and return as a string
+	return strconv.FormatFloat(float64(size)/float64(TB), 'f', 2, 64) + "tb"
+}
+
 // return identity style string
 func GetIdentityStyle() string {
 	return "variant-" + aliasPrefixes[RandomIntBetween(0, len(aliasPrefixes))] + "-" + aliasSuffixes[RandomIntBetween(0, len(aliasSuffixes))]
@@ -575,6 +621,52 @@ func GetRandomTags() []string {
 		tags = append(tags, GetLoremWord())
 	}
 	return tags
+}
+
+// generate and populate an asset source for deriving assets
+func GenerateAssetSource(index int) *AssetSource {
+	var width, height int = 0, 0     // dimensions
+	var a_width, a_height int = 0, 0 // avatar dimnensions
+	ix := RandomIntBetween(0, len(imageSourceSizes))
+
+	sizes := strings.Split(imageSourceSizes[ix], "/")
+	width, _ = strconv.Atoi(sizes[0])
+	height, _ = strconv.Atoi(sizes[1])
+
+	a_size := strings.Split(imageThumbnailSizes[ix], "/")
+	a_width, _ = strconv.Atoi(a_size[0])
+	a_height, _ = strconv.Atoi(a_size[1])
+
+	ts := time.Now().UTC()
+
+	src := &AssetSource{
+		ID:        primitive.NewObjectID(),
+		AssetType: GetRandomAssetType(),
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
+	}
+
+	sourceURL, avatarURL := FormatImageUrls(index)
+	ext := GetRandomAssetExt(src.AssetType)
+
+	rawSize := GetRandomFileSize()
+	a_rawSize := rawSize / avatarFileSizeMultiplier
+
+	src.Details.Source.URL = sourceURL
+	src.Details.Source.Extension = ext
+	src.Details.Source.Width = uint16(width)
+	src.Details.Source.Height = uint16(height)
+	src.Details.Source.Size = uint64(rawSize)
+	src.Details.Source.SizeStr = FormatByteString(rawSize)
+
+	src.Details.Avatar.URL = avatarURL
+	src.Details.Avatar.Extension = ext
+	src.Details.Avatar.Width = uint16(a_width)
+	src.Details.Avatar.Height = uint16(a_height)
+	src.Details.Avatar.Size = uint64(a_rawSize)
+	src.Details.Avatar.SizeStr = FormatByteString(a_rawSize)
+
+	return src
 }
 
 // pair of image url sections
@@ -604,15 +696,6 @@ func GetRandomVideoExt() string {
 	return videoFileExtensions[RandomIntBetween(0, len(videoFileExtensions))]
 }
 
-// get random media type
-func GetRandomMediaType() string {
-	num := RandomIntBetween(0, 100)
-	if num > 90 {
-		return "video"
-	}
-	return "image"
-}
-
 // get random AssetType (not string)
 func GetRandomAssetType() AssetType {
 	num := RandomIntBetween(0, 100)
@@ -622,18 +705,7 @@ func GetRandomAssetType() AssetType {
 	return AssetTypeImage
 }
 
-// get random media extension by type
-func GetRandomExtByType(mediaType string) string {
-	switch mediaType {
-	case "image":
-		return GetRandomImageExt()
-	case "video":
-		return GetRandomVideoExt()
-	}
-
-	return ""
-}
-
+// gets a random asset extension based on type
 func GetRandomAssetExt(at AssetType) string {
 	switch at {
 	case AssetTypeImage:
