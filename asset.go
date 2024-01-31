@@ -14,14 +14,35 @@ const (
 	AssetTypeVideo AssetType = "video"
 )
 
+func (a AssetType) String() string {
+	return string(a)
+}
+
+type HashMethod string
+
+const (
+	HashMethodMD5    HashMethod = "md5"
+	HashMethodSHA256 HashMethod = "sha256"
+)
+
+func (h HashMethod) String() string {
+	return string(h)
+}
+
+type AssetSourceDetails struct {
+	Avatar *FileCtx `json:"avatar" bson:"avatar"`
+	Source *FileCtx `json:"source" bson:"source"`
+}
+
 // unique asset - make references if it already exists
 type AssetSource struct {
 	ID primitive.ObjectID `json:"_id" bson:"_id"`
 
-	Details struct {
-		Avatar FileCtx `json:"avatar" bson:"avatar"`
-		Source FileCtx `json:"source" bson:"source"`
-	}
+	// Details struct {
+	// 	Avatar FileCtx `json:"avatar" bson:"avatar"`
+	// 	Source FileCtx `json:"source" bson:"source"`
+	// }
+	Details *AssetSourceDetails `json:"details" bson:"details"`
 
 	AssetType AssetType            `json:"asset_type" bson:"asset_type"`
 	Uploaders []primitive.ObjectID `json:"uploaders" bson:"uploaders"`
@@ -38,8 +59,9 @@ type Asset struct {
 	SourceID  primitive.ObjectID `json:"source_id" bson:"source_id"`
 	AccountID primitive.ObjectID `json:"account_id" bson:"account_id"`
 
-	FileName string   `json:"file_name" bson:"file_name"`
-	Tags     []string `json:"tags" bson:"tags"`
+	Description string   `json:"description" bson:"description"`
+	FileName    string   `json:"file_name" bson:"file_name"`
+	Tags        []string `json:"tags" bson:"tags"`
 
 	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
 	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
@@ -47,12 +69,14 @@ type Asset struct {
 }
 
 type FileCtx struct {
-	Height    uint16 `json:"height" bson:"height"`
-	Width     uint16 `json:"width" bson:"width"`
-	Size      uint64 `json:"size" bson:"size"`
-	SizeStr   string `json:"size_str" bson:"size_str"`
-	URL       string `json:"url" bson:"url"`
-	Extension string `json:"extension" bson:"extension"`
+	ServerFileName string `json:"server_file_name" bson:"server_file_name"`
+	Height         uint16 `json:"height" bson:"height"`
+	Width          uint16 `json:"width" bson:"width"`
+	FileSize       uint32 `json:"file_size" bson:"file_size"`
+	URL            string `json:"url" bson:"url"`
+	Extension      string `json:"extension" bson:"extension"`
+	HashMD5        string `json:"hash_md5" bson:"hash_md5"`
+	HashSHA256     string `json:"hash_sha256" bson:"hash_sha256"`
 }
 
 // generates asset sources to create Assets from (references)
@@ -78,7 +102,7 @@ func (s *MongoStore) GenerateAssetCount(count int, creatorId primitive.ObjectID)
 	indexId := RandomIntBetween(9, len(s.cAssetSrcMap)-count)
 
 	for i := 0; i < count; i++ {
-		asset, err := s.GenerateAsset(indexId+i, creatorId)
+		asset, err := s.GenerateAsset((indexId+i)-1, creatorId)
 		if err != nil {
 			fmt.Printf("Error generating asset for post: %v\n - skipping\n", err)
 			continue
@@ -101,13 +125,14 @@ func (s *MongoStore) GenerateAsset(index int, creator primitive.ObjectID) (*Asse
 	assetSource.Uploaders = append(assetSource.Uploaders, creator)
 
 	asset := &Asset{
-		ID:        primitive.NewObjectID(),
-		SourceID:  assetSource.ID,
-		AccountID: creator,
-		FileName:  SelectAnyWord(),
-		Tags:      GetRandomTags(),
-		CreatedAt: &ts,
-		UpdatedAt: &ts,
+		ID:          primitive.NewObjectID(),
+		SourceID:    assetSource.ID,
+		AccountID:   creator,
+		FileName:    SelectAnyWord(),
+		Description: GetSentence(),
+		Tags:        GetRandomTags(),
+		CreatedAt:   &ts,
+		UpdatedAt:   &ts,
 	}
 
 	s.cAssets = append(s.cAssets, asset)

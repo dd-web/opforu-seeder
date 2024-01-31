@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -623,11 +625,36 @@ func GetRandomTags() []string {
 	return tags
 }
 
+// md5 sample: AUqKpTEpkZ8OtOxqyXDPXw==
+// sha256 sample: 4bt2e7eL3afWpEuEn1Yog14pea--PVGA4d06N0F7Tug=
+// returns md5, sha256 base64 encoded checksums
+func GetChecksumFromStr(str string) (string, string) {
+	sumMD5, sumSHA256 := "", ""
+
+	hashmd5 := md5.New()
+	_, err := io.Copy(hashmd5, strings.NewReader(str))
+	if err != nil {
+		return "", ""
+	}
+	sumMD5 = base64.URLEncoding.EncodeToString(hashmd5.Sum(nil))
+
+	hashsha256 := sha256.New()
+	_, err = io.Copy(hashsha256, strings.NewReader(str))
+	if err != nil {
+		return "", ""
+	}
+	sumSHA256 = base64.URLEncoding.EncodeToString(hashsha256.Sum(nil))
+
+	return sumMD5, sumSHA256
+}
+
 // generate and populate an asset source for deriving assets
 func GenerateAssetSource(index int) *AssetSource {
 	var width, height int = 0, 0     // dimensions
 	var a_width, a_height int = 0, 0 // avatar dimnensions
 	ix := RandomIntBetween(0, len(imageSourceSizes))
+
+	kind := GetRandomAssetType()
 
 	sizes := strings.Split(imageSourceSizes[ix], "/")
 	width, _ = strconv.Atoi(sizes[0])
@@ -638,33 +665,52 @@ func GenerateAssetSource(index int) *AssetSource {
 	a_height, _ = strconv.Atoi(a_size[1])
 
 	ts := time.Now().UTC()
-
-	src := &AssetSource{
-		ID:        primitive.NewObjectID(),
-		AssetType: GetRandomAssetType(),
-		CreatedAt: &ts,
-		UpdatedAt: &ts,
-	}
+	tsn := ts.UnixNano()
 
 	sourceURL, avatarURL := FormatImageUrls(index)
-	ext := GetRandomAssetExt(src.AssetType)
+	ext := GetRandomAssetExt(kind)
 
 	rawSize := GetRandomFileSize()
 	a_rawSize := rawSize / avatarFileSizeMultiplier
 
-	src.Details.Source.URL = sourceURL
-	src.Details.Source.Extension = ext
-	src.Details.Source.Width = uint16(width)
-	src.Details.Source.Height = uint16(height)
-	src.Details.Source.Size = uint64(rawSize)
-	src.Details.Source.SizeStr = FormatByteString(rawSize)
+	cs_md5, cs_sha256 := GetChecksumFromStr(sourceURL)
+	acs_md5, acs_sha256 := GetChecksumFromStr(avatarURL)
 
-	src.Details.Avatar.URL = avatarURL
-	src.Details.Avatar.Extension = ext
-	src.Details.Avatar.Width = uint16(a_width)
-	src.Details.Avatar.Height = uint16(a_height)
-	src.Details.Avatar.Size = uint64(a_rawSize)
-	src.Details.Avatar.SizeStr = FormatByteString(a_rawSize)
+	sourceFileCtx := &FileCtx{
+		ServerFileName: fmt.Sprintf("%d", tsn),
+		Height:         uint16(height),
+		Width:          uint16(width),
+		FileSize:       uint32(rawSize),
+		URL:            sourceURL,
+		Extension:      ext,
+		HashMD5:        cs_md5,
+		HashSHA256:     cs_sha256,
+	}
+
+	avatarFileCtx := &FileCtx{
+		ServerFileName: fmt.Sprintf("a-%d", tsn),
+		Height:         uint16(a_height),
+		Width:          uint16(a_width),
+		FileSize:       uint32(a_rawSize),
+		URL:            avatarURL,
+		Extension:      ext,
+		HashMD5:        acs_md5,
+		HashSHA256:     acs_sha256,
+	}
+
+	details := &AssetSourceDetails{
+		Source: sourceFileCtx,
+		Avatar: avatarFileCtx,
+	}
+
+	src := &AssetSource{
+		ID:        primitive.NewObjectID(),
+		Details:   details,
+		AssetType: kind,
+		Uploaders: []primitive.ObjectID{},
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
+	}
 
 	return src
 }
