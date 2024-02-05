@@ -592,21 +592,17 @@ func FormatByteString(size int) string {
 	}
 
 	if size < int(MB) {
-		// get the number of kilobytes with 2 decimal places and return as a string
 		return strconv.FormatFloat(float64(size)/float64(KB), 'f', 2, 64) + "kb"
 	}
 
 	if size < int(GB) {
-		// get the number of megabytes with 2 decimal places and return as a string
 		return strconv.FormatFloat(float64(size)/float64(MB), 'f', 2, 64) + "mb"
 	}
 
 	if size < int(TB) {
-		// get the number of gigabytes with 2 decimal places and return as a string
 		return strconv.FormatFloat(float64(size)/float64(GB), 'f', 2, 64) + "gb"
 	}
 
-	// get the number of terabytes with 2 decimal places and return as a string
 	return strconv.FormatFloat(float64(size)/float64(TB), 'f', 2, 64) + "tb"
 }
 
@@ -618,10 +614,17 @@ func GetIdentityStyle() string {
 // return between min and max tags
 func GetRandomTags() []string {
 	tagCount := RandomIntBetween(0, 6)
+	words := map[string]int{}
 	tags := []string{}
-	for i := 0; i < tagCount; i++ {
-		tags = append(tags, GetLoremWord())
+
+	for len(tags) < tagCount {
+		w := GetLoremWord()
+		if ok := words[w]; ok == 0 {
+			words[w] = 1
+			tags = append(tags, w)
+		}
 	}
+
 	return tags
 }
 

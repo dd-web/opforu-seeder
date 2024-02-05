@@ -41,7 +41,7 @@ func (s *MongoStore) GenCollections() {
 	}
 }
 
-// Generic Document Persistance
+// Generic document persistance
 func (s *MongoStore) PersistDocuments(docs []interface{}, colName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -71,8 +71,6 @@ func (s *MongoStore) PersistAll() {
 		s.PersistIdentities,
 		s.PersistAssetSrc,
 		s.PersistAssets,
-		// s.PersistMediaSources,
-		// s.PersistMedia,
 	}
 
 	for _, fn := range storeFns {
