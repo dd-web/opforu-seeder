@@ -23,55 +23,32 @@ type Identity struct {
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// New identity ptr with some default values
-func NewEmptyIdentity() *Identity {
+// New identity
+func NewIdentity(account, thread primitive.ObjectID, role ThreadRole) *Identity {
 	ts := time.Now().UTC()
 	return &Identity{
 		ID:        primitive.NewObjectID(),
+		Account:   account,
 		Name:      GetSlug(8, 10),
 		Style:     GetIdentityStyle(),
+		Role:      role,
 		Status:    GetWeightedIdentityStatus(),
+		Thread:    thread,
 		CreatedAt: &ts,
+		UpdatedAt: &ts,
 	}
-}
-
-// Randomize unreferenced fields while populating referenced fields
-func (i *Identity) Randomize(userId primitive.ObjectID, role ThreadRole) {
-	ts := time.Now().UTC()
-	i.Account = userId
-	i.Role = role
-	i.UpdatedAt = &ts
-}
-
-// weighted identity role
-func (i *Identity) SetWeightedRole() {
-	if RandomIntBetween(0, 100) < 95 {
-		i.Role = ThreadRoleUser
-	} else {
-		i.Role = ThreadRoleMod
-	}
-}
-
-// Generate Identity for a thread
-func (s *MongoStore) GenerateThreadIdentity(userId primitive.ObjectID, role ThreadRole) *Identity {
-	identity := NewEmptyIdentity()
-	identity.Randomize(userId, role)
-	return identity
 }
 
 // Return a user's identity for a thread - or create one if it doesn't exist
-func (s *MongoStore) GetUserThreadIdentity(userId, threadId primitive.ObjectID) *Identity {
-	threadIdentity := s.cUserThreadIdentitys[threadId][userId]
-
-	if threadIdentity == nil {
-		threadIdentity = s.GenerateThreadIdentity(userId, ThreadRoleUser)
-		threadIdentity.SetWeightedRole()
-		threadIdentity.Thread = threadId
-		s.cUserThreadIdentitys[threadId][userId] = threadIdentity
-		s.cIdentites = append(s.cIdentites, threadIdentity)
+func (s *MongoStore) GetUserThreadIdentity(account, thread primitive.ObjectID) *Identity {
+	if identity, ok := s.cUserThreadIdentitys[thread][account]; ok {
+		return identity
+	} else {
+		identity := NewIdentity(account, thread, GetWeightedThreadRole())
+		s.cUserThreadIdentitys[thread][account] = identity
+		s.cIdentites = append(s.cIdentites, identity)
+		return identity
 	}
-
-	return threadIdentity
 }
 
 // Persist Identitys

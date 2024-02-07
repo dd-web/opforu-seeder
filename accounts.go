@@ -105,9 +105,25 @@ func (s *MongoStore) GetRandomAdminID() primitive.ObjectID {
 	return *s.cAdmins[RandomIntBetween(0, len(s.cAdmins))]
 }
 
+// get random admin account
+func (s *MongoStore) GetRandomAdminAccount() *Account {
+	id := s.GetRandomAdminID()
+	for _, v := range s.cAccounts {
+		if v.ID == id {
+			return v
+		}
+	}
+	return nil
+}
+
 // Get Random Account ID
 func (s *MongoStore) GetRandomAccountID() primitive.ObjectID {
 	return s.cAccounts[RandomIntBetween(0, len(s.cAccounts))].ID
+}
+
+// Get random account
+func (s *MongoStore) GetRandomAccount() *Account {
+	return s.cAccounts[RandomIntBetween(0, len(s.cAccounts))]
 }
 
 // Gets a map of at least one admin account and up to 2 mod accounts (for article co_authors)
@@ -208,4 +224,8 @@ func (a AccountRole) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+func IsStaffRole(role AccountRole) bool {
+	return role == AccountRoleAdmin || role == AccountRoleMod
 }

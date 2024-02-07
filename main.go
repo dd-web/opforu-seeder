@@ -21,14 +21,16 @@ type MongoStore struct {
 
 	PostRefs map[string]int
 
-	cBoards    []*Board
-	cThreads   []*Thread
-	cPosts     []*Post
-	cIdentites []*Identity
-	cAccounts  []*Account
-	cArticles  []*Article
-	cSessions  []*Session
-	cAssets    []*Asset
+	cBoards          []*Board
+	cThreads         []*Thread
+	cPosts           []*Post
+	cIdentites       []*Identity
+	cAccounts        []*Account
+	cArticles        []*Article
+	cArticleAuthors  []*ArticleAuthor
+	cArticleComments []*ArticleComment
+	cSessions        []*Session
+	cAssets          []*Asset
 
 	cAdmins []*primitive.ObjectID
 	cMods   []*primitive.ObjectID
@@ -42,12 +44,12 @@ func main() {
 
 	store.SetupDB()
 
-	store.GenerateAccounts(150, 300)     // between 150 and 300 accounts
-	store.GenerateBoards()               // creates all default boards
-	store.GenerateArticles(20, 60)       // between 20 and 60 articles
-	store.GenerateAssetSources(400, 800) // between 400 and 800 media sources
-	store.GenerateThreads(200, 500)      // between 200 and 500 total threads (all boards)
-	store.GeneratePosts(5, 60)           // generates between 5 and 60 posts per thread
+	store.GenerateAccounts(150, 300)
+	store.GenerateBoards()
+	store.GenerateAssetSources(400, 800)
+	store.GenerateArticles(20, 60)
+	store.GenerateThreads(200, 500)
+	store.GeneratePosts(5, 60)
 
 	store.PersistAll()
 

@@ -540,6 +540,16 @@ func GetWeightedIdentityStatus() IdentityStatus {
 	}
 }
 
+// weighted thread role (creator roles are specificly applied which is why they aren't here)
+func GetWeightedThreadRole() ThreadRole {
+	num := RandomIntBetween(0, 100)
+	if num < 85 {
+		return ThreadRoleUser
+	} else {
+		return ThreadRoleMod
+	}
+}
+
 // return random slug between min and max
 func GetSlug(min, max int) string {
 	slugLen := RandomIntBetween(min, max)

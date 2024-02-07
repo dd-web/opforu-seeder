@@ -24,24 +24,20 @@ type Post struct {
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// New post ptr
-func NewEmptyPost() *Post {
+// New post
+func NewPost() *Post {
 	ts := time.Now().UTC()
 	return &Post{
-		ID:        primitive.NewObjectID(),
-		Assets:    []primitive.ObjectID{},
-		Body:      GetParagraphsBetween(1, 5),
-		CreatedAt: &ts,
+		ID:         primitive.NewObjectID(),
+		PostNumber: 0,
+		Creator:    primitive.NilObjectID,
+		Body:       GetParagraphsBetween(1, 5),
+		Assets:     []primitive.ObjectID{},
+		Board:      primitive.NilObjectID,
+		Thread:     primitive.NilObjectID,
+		CreatedAt:  &ts,
+		UpdatedAt:  &ts,
 	}
-}
-
-// Randomize unreferenced fields while populating referenced fields
-func (p *Post) Randomize(boardId, threadId, creatorId primitive.ObjectID) {
-	ts := time.Now().UTC()
-	p.Board = boardId
-	p.Thread = threadId
-	p.Creator = creatorId
-	p.UpdatedAt = &ts
 }
 
 // Generate Posts for each thread
@@ -60,13 +56,16 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 			s.PostRefs[postBoard.Short]++
 			postBoard.PostRef = s.PostRefs[postBoard.Short]
 
-			postCreatorAccount := s.GetRandomAccountID()
-			postCreatorIdentity := s.GetUserThreadIdentity(postCreatorAccount, thread.ID)
+			postCreatorAccount := s.GetRandomAccount()
+			postCreatorIdentity := s.GetUserThreadIdentity(postCreatorAccount.ID, thread.ID)
 
-			post := NewEmptyPost()
-			post.Randomize(thread.Board, thread.ID, postCreatorIdentity.ID)
+			post := NewPost()
+			post.Board = thread.Board
+			post.Thread = thread.ID
+			post.Creator = postCreatorIdentity.ID
 			post.PostNumber = s.PostRefs[postBoard.Short]
-			pmedIds, err := s.GenerateAssetCount(mediaCt, postCreatorAccount)
+
+			pmedIds, err := s.GenerateAssetCount(mediaCt, postCreatorAccount.ID)
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -85,7 +84,6 @@ func (s *MongoStore) GeneratePosts(min, max int) {
 
 	fmt.Print("\033[G\033[K")
 	fmt.Printf(" - Generating Posts: %v/%v", len(s.cPosts), len(s.cPosts))
-
 }
 
 // Persist Posts

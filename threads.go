@@ -32,18 +32,23 @@ type Thread struct {
 }
 
 // new empty thread ptr
-func NewEmptyThread() *Thread {
+func NewThread() *Thread {
 	ts := time.Now().UTC()
 	return &Thread{
 		ID:        primitive.NewObjectID(),
+		Status:    GetWeightedThreadStatus(),
 		Title:     GetSentence(),
 		Body:      GetParagraphsBetween(1, 4),
 		Slug:      GetSlug(12, 16),
-		Assets:    []primitive.ObjectID{},
+		Board:     primitive.NilObjectID,
+		Creator:   primitive.NilObjectID,
 		Posts:     []primitive.ObjectID{},
-		Status:    GetWeightedThreadStatus(),
+		Mods:      []primitive.ObjectID{},
+		Assets:    []primitive.ObjectID{},
 		Tags:      GetRandomTags(),
+		Flags:     []ThreadFlag{},
 		CreatedAt: &ts,
+		UpdatedAt: &ts,
 	}
 }
 
@@ -63,23 +68,18 @@ func (s *MongoStore) GenerateThreads(min, max int) {
 	for i := 0; i < threadCount; i++ {
 		fmt.Print("\033[G\033[K")
 		fmt.Printf(" - Generating Threads: %v/%v", i+1, threadCount)
-		mediaCt := RandomIntBetween(0, 9)
+
+		thread := NewThread()
 		threadBoard := s.GetRandomBoard()
+		threadCreatorAccount := s.GetRandomAccount()
+		threadCreatorIdentity := NewIdentity(threadCreatorAccount.ID, thread.ID, ThreadRoleCreator)
 
-		threadCreatorAccount := s.GetRandomAccountID()
-		threadCreatorIdentity := s.GenerateThreadIdentity(threadCreatorAccount, ThreadRoleCreator)
-
-		s.cIdentites = append(s.cIdentites, threadCreatorIdentity)
-
-		thread := NewEmptyThread()
-		thread.Randomize(threadBoard.ID, threadCreatorIdentity.ID)
-
+		thread.Board = threadBoard.ID
+		thread.Creator = threadCreatorIdentity.ID
 		threadCreatorIdentity.Thread = thread.ID
-		threadBoard.Threads = append(threadBoard.Threads, thread.ID)
 
-		s.cUserThreadIdentitys[thread.ID] = make(map[primitive.ObjectID]*Identity)
-
-		pmedIds, err := s.GenerateAssetCount(mediaCt, threadCreatorAccount)
+		mediaCt := RandomIntBetween(0, 9)
+		pmedIds, err := s.GenerateAssetCount(mediaCt, threadCreatorAccount.ID)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -87,7 +87,10 @@ func (s *MongoStore) GenerateThreads(min, max int) {
 
 		thread.Assets = pmedIds
 
-		s.cUserThreadIdentitys[thread.ID][threadCreatorAccount] = threadCreatorIdentity
+		threadBoard.Threads = append(threadBoard.Threads, thread.ID)
+		s.cUserThreadIdentitys[thread.ID] = make(map[primitive.ObjectID]*Identity)
+		s.cUserThreadIdentitys[thread.ID][threadCreatorAccount.ID] = threadCreatorIdentity
+		s.cIdentites = append(s.cIdentites, threadCreatorIdentity)
 		s.cThreads = append(s.cThreads, thread)
 	}
 
@@ -112,14 +115,8 @@ func (s *MongoStore) PersistThreads() error {
 		docs = append(docs, thread)
 	}
 
-	if err := s.PersistDocuments(docs, "threads"); err != nil {
-		return err
-	}
-
-	return nil
+	return s.PersistDocuments(docs, "threads")
 }
-
-// Enums
 
 type ThreadStatus string
 

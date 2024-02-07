@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,14 +18,10 @@ var defaultBoards [][]string = [][]string{
 	{"history", "his", "history is cool"},
 }
 
-// returns number of default boards
-func GetDefaultBoardCount() int {
-	return len(defaultBoards)
-}
-
 type Board struct {
 	ID primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 
+	PostRef     int    `json:"post_ref" bson:"post_ref"` // current board post count (used to populate post number)
 	Title       string `json:"title" bson:"title"`
 	Short       string `json:"short" bson:"short"`
 	Description string `json:"description" bson:"description"`
@@ -36,28 +31,20 @@ type Board struct {
 	CreatedAt *time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at" bson:"updated_at"`
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at"`
-
-	// Keeps track of the current post number for that board
-	PostRef int `json:"post_ref" bson:"post_ref"`
 }
 
-// new empty board ptr
-func NewEmptyBoard() *Board {
-	return &Board{}
-}
-
-// create a board with specific values
-// title - short - desc
-func NewBoard(t, s, d string) *Board {
+// New board
+func NewBoard(title, short, description string) *Board {
 	ts := time.Now().UTC()
 	return &Board{
-		Title:       t,
-		Short:       s,
-		Description: d,
+		ID:          primitive.NewObjectID(),
+		PostRef:     0,
+		Title:       title,
+		Short:       short,
+		Description: description,
 		Threads:     []primitive.ObjectID{},
 		CreatedAt:   &ts,
 		UpdatedAt:   &ts,
-		PostRef:     0,
 	}
 }
 
@@ -71,16 +58,14 @@ func GetBoardIndex(index int) (*Board, error) {
 
 // Generate boards
 func (s *MongoStore) GenerateBoards() {
-	for i := 0; i < len(defaultBoards); i++ {
+	for index, v := range defaultBoards {
 		fmt.Print("\033[G\033[K")
-		fmt.Printf(" - Generating Boards: %v/%v", i+1, len(defaultBoards))
-		board, err := GetBoardIndex(i)
-		if err != nil {
-			log.Fatal(err)
-		}
-		board.ID = primitive.NewObjectID()
+		fmt.Printf(" - Generating Boards: %v/%v", index+1, len(defaultBoards))
+
+		board := NewBoard(v[0], v[1], v[2])
 		s.cBoards = append(s.cBoards, board)
 	}
+
 	fmt.Print("\n")
 }
 
