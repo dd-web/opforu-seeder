@@ -31,6 +31,7 @@ type MongoStore struct {
 	cArticleComments []*ArticleComment
 	cSessions        []*Session
 	cAssets          []*Asset
+	cFavAssetList    []*FavoriteAssetList
 
 	cAdmins []*primitive.ObjectID
 	cMods   []*primitive.ObjectID

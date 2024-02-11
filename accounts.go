@@ -27,25 +27,25 @@ type Account struct {
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// New empty account ptr
-func NewEmptyAccount() *Account {
-	ts := time.Now().UTC()
-	return &Account{
-		CreatedAt: &ts,
-	}
+type FavoriteAssetList struct {
+	ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id"`
+	AccountID primitive.ObjectID   `bson:"account" json:"account"` // account id
+	Items     []primitive.ObjectID `bson:"items" json:"items"`     // asset id's
+
+	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-// Randomize account fields
-func (a *Account) Randomize() {
-	pw, _ := HashPassword("123")
+func NewFavoriteAssetList() *FavoriteAssetList {
 	ts := time.Now().UTC()
-	a.Username = GetUsername()
-	a.ID = primitive.NewObjectID()
-	a.Email = GetEmail()
-	a.Role = GetWeightedRole()
-	a.Status = GetWeightedAccountStatus()
-	a.UpdatedAt = &ts
-	a.Password = pw
+	return &FavoriteAssetList{
+		ID:        primitive.NewObjectID(),
+		AccountID: primitive.NilObjectID,
+		Items:     []primitive.ObjectID{},
+		CreatedAt: &ts,
+		UpdatedAt: &ts,
+	}
 }
 
 // Create a new account with provided Username, Email, Role and Status
@@ -70,12 +70,21 @@ func (s *MongoStore) GenerateAccounts(min, max int) {
 		fmt.Print("\033[G\033[K")
 		fmt.Printf(" - Generating Accounts & Sessions (expensive hashes are slow): %v/%v", i+1, accountCount)
 
-		account := NewEmptyAccount()
-		account.Randomize()
+		ts := time.Now().UTC()
+		pw, _ := HashPassword("123")
+
+		account := NewAccount(GetUsername(), GetEmail(), GetWeightedRole(), GetWeightedAccountStatus())
+		account.Password = pw
+		account.UpdatedAt = &ts
+
 		session := NewSessionFromAccount(account)
+
+		favoriteList := NewFavoriteAssetList()
+		favoriteList.AccountID = account.ID
 
 		s.cSessions = append(s.cSessions, session)
 		s.cAccounts = append(s.cAccounts, account)
+		s.cFavAssetList = append(s.cFavAssetList, favoriteList)
 
 		if account.Role == AccountRoleAdmin {
 			s.cAdmins = append(s.cAdmins, &account.ID)
@@ -95,7 +104,12 @@ func (s *MongoStore) GenerateDevAccounts() {
 		account := NewAccount(devAccounts[i][0], devAccounts[i][1], AccountRoleAdmin, AccountStatusActive)
 		pwh, _ := HashPassword(devAccounts[i][2])
 		account.Password = pwh
+
+		favoriteList := NewFavoriteAssetList()
+		favoriteList.AccountID = account.ID
+
 		s.cAccounts = append(s.cAccounts, account)
+		s.cFavAssetList = append(s.cFavAssetList, favoriteList)
 	}
 	fmt.Print("\n")
 }
@@ -174,6 +188,15 @@ func (s *MongoStore) PersistAccounts() error {
 		docs = append(docs, account)
 	}
 	return s.PersistDocuments(docs, "accounts")
+}
+
+// persist favorite asssets lists to db
+func (s *MongoStore) PersistFavLists() error {
+	docs := []interface{}{}
+	for _, list := range s.cFavAssetList {
+		docs = append(docs, list)
+	}
+	return s.PersistDocuments(docs, "favorite_asset_lists")
 }
 
 type AccountStatus string
