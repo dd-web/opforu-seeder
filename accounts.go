@@ -27,27 +27,6 @@ type Account struct {
 	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
-type FavoriteAssetList struct {
-	ID        primitive.ObjectID   `bson:"_id,omitempty" json:"_id"`
-	AccountID primitive.ObjectID   `bson:"account" json:"account"` // account id
-	Items     []primitive.ObjectID `bson:"items" json:"items"`     // asset id's
-
-	CreatedAt *time.Time `bson:"created_at" json:"created_at"`
-	UpdatedAt *time.Time `bson:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
-}
-
-func NewFavoriteAssetList() *FavoriteAssetList {
-	ts := time.Now().UTC()
-	return &FavoriteAssetList{
-		ID:        primitive.NewObjectID(),
-		AccountID: primitive.NilObjectID,
-		Items:     []primitive.ObjectID{},
-		CreatedAt: &ts,
-		UpdatedAt: &ts,
-	}
-}
-
 // Create a new account with provided Username, Email, Role and Status
 func NewAccount(u string, e string, r AccountRole, st AccountStatus) *Account {
 	ts := time.Now().UTC()
@@ -79,12 +58,8 @@ func (s *MongoStore) GenerateAccounts(min, max int) {
 
 		session := NewSessionFromAccount(account)
 
-		favoriteList := NewFavoriteAssetList()
-		favoriteList.AccountID = account.ID
-
 		s.cSessions = append(s.cSessions, session)
 		s.cAccounts = append(s.cAccounts, account)
-		s.cFavAssetList = append(s.cFavAssetList, favoriteList)
 
 		if account.Role == AccountRoleAdmin {
 			s.cAdmins = append(s.cAdmins, &account.ID)
@@ -105,11 +80,7 @@ func (s *MongoStore) GenerateDevAccounts() {
 		pwh, _ := HashPassword(devAccounts[i][2])
 		account.Password = pwh
 
-		favoriteList := NewFavoriteAssetList()
-		favoriteList.AccountID = account.ID
-
 		s.cAccounts = append(s.cAccounts, account)
-		s.cFavAssetList = append(s.cFavAssetList, favoriteList)
 	}
 	fmt.Print("\n")
 }
@@ -188,15 +159,6 @@ func (s *MongoStore) PersistAccounts() error {
 		docs = append(docs, account)
 	}
 	return s.PersistDocuments(docs, "accounts")
-}
-
-// persist favorite asssets lists to db
-func (s *MongoStore) PersistFavLists() error {
-	docs := []interface{}{}
-	for _, list := range s.cFavAssetList {
-		docs = append(docs, list)
-	}
-	return s.PersistDocuments(docs, "favorite_asset_lists")
 }
 
 type AccountStatus string
