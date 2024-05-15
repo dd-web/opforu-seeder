@@ -6,7 +6,7 @@ This project has changed goals and now remains as a single solution seeder to a 
 
 ## About
 
-This was originally intended as a proof of concept which worked quite well. The idea was to input a schema and have a generative data seeder. There came many problems and ultimately I came to the conclusion it's far easier just to do this again and adapt it to any usecase.
+This was originally intended as a proof of concept which worked quite well. The idea was to input a schema and have a generative data seeder. There came many complexities and ultimately I came to the conclusion it's far easier just to do this again and adapt it to any usecase.
 
 The main idea is to eliminate the network call wherever possible, so the entirety of the data is generated and calls bulk store operations. This tool only cares about the final state of the data so if you're using migrations you'll need to know the final state of the schema. It keeps track of references in a shared store, so they may be updated/retreived as necessary. It also means if you're going to use this approach it should be designed carefully to ensure references are always valid when accessed. 
 
